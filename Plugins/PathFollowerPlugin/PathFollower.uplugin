@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Path Follower",
+	"Description": "A plugin for creating spline-based route actors that can be placed in levels",
+	"Category": "Gameplay",
+	"CreatedBy": "Developer",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "PathFollower",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
