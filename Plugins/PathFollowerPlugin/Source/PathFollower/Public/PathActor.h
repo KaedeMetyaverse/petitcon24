@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SplineComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "PathActor.generated.h"
 
 UCLASS()
@@ -15,11 +16,33 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+	// Properties to be set by derived classes in constructor
+	float PathMarkerDistance = 100.0f;  // Distance between path markers
+	TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
+
+private:
+	// Function to spawn path markers along the spline
+	void SpawnPathMarkersAlongSpline();
+	
+	// Function to clear existing path markers
+	void ClearPathMarkers();
+	
+private:
 	UPROPERTY()
 	TObjectPtr<USplineComponent> PathSpline;
 
-public:	
-	// Get spline component
-	TObjectPtr<USplineComponent> GetPathSpline() const;
+// Array to keep track of spawned path marker components for cleanup
+	UPROPERTY()
+	TArray<TObjectPtr<UChildActorComponent>> SpawnedPathMarkerComponents;
+
+#if WITH_EDITORONLY_DATA
+	// Flag to track if we're in editor mode
+	bool bIsInEditor = false;
+#endif
 };
