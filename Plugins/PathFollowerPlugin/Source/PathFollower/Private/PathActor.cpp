@@ -32,3 +32,7 @@ void APathActor::BeginPlay()
 	
 	// Additional initialization if needed
 }
+
+TObjectPtr<USplineComponent> APathActor::GetPathSpline() const {
+	return PathSpline;
+}

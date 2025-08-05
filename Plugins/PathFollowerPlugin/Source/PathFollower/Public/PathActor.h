@@ -16,13 +16,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Path", meta = (AllowPrivateAccess = "true"))
-	class USplineComponent* PathSpline;
+	UPROPERTY()
+	TObjectPtr<USplineComponent> PathSpline;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Path", meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* PathMesh;
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> PathMesh;
 
 public:	
 	// Get spline component
-	FORCEINLINE USplineComponent* GetPathSpline() const { return PathSpline; }
+	TObjectPtr<USplineComponent> GetPathSpline() const;
 };
