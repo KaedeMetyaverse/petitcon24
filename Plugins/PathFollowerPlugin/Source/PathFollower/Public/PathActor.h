@@ -19,9 +19,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<USplineComponent> PathSpline;
 
-	UPROPERTY()
-	TObjectPtr<UStaticMeshComponent> PathMesh;
-
 public:	
 	// Get spline component
 	TObjectPtr<USplineComponent> GetPathSpline() const;
