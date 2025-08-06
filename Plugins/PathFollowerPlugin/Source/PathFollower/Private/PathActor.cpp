@@ -99,6 +99,7 @@ void APathActor::SpawnPathMarkersAlongSpline()
 #if WITH_EDITOR
 		// Prevent selection of the marker component in editor
 		MarkerComponent->SetIsVisualizationComponent(true);
+		MarkerComponent->bIsEditorOnly = false;
 
 		// Hide the marker component in the editor tree view
 		MarkerComponent->SetEditorTreeViewVisualizationMode(
