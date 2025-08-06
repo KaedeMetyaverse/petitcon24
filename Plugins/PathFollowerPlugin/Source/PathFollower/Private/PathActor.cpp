@@ -13,6 +13,10 @@ APathActor::APathActor()
 	PathSpline = CreateDefaultSubobject<USplineComponent>(TEXT("PathSpline"));
 	RootComponent = PathSpline;
 	
+#if WITH_EDITOR
+	bRunConstructionScriptOnDrag = true;
+#endif
+	
 #if WITH_EDITORONLY_DATA
 	bIsInEditor = true;
 #endif
