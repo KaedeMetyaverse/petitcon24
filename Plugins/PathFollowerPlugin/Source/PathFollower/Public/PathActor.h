@@ -36,9 +36,4 @@ private:
 	// Array to keep track of spawned path marker components for cleanup
 	UPROPERTY()
 	TArray<TObjectPtr<UChildActorComponent>> SpawnedPathMarkerComponents;
-
-#if WITH_EDITORONLY_DATA
-	// Flag to track if we're in editor mode
-	bool bIsInEditor = false;
-#endif
 };

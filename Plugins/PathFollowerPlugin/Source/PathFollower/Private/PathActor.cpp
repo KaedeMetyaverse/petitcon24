@@ -16,19 +16,11 @@ APathActor::APathActor()
 #if WITH_EDITOR
 	bRunConstructionScriptOnDrag = true;
 #endif
-	
-#if WITH_EDITORONLY_DATA
-	bIsInEditor = true;
-#endif
 }
 
 void APathActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
-#if WITH_EDITORONLY_DATA
-	bIsInEditor = false;
-#endif
 	
 	// Clear any editor-spawned markers and spawn runtime markers
 	ClearPathMarkers();
