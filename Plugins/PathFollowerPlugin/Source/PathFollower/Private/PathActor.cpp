@@ -105,7 +105,12 @@ void APathActor::SpawnPathMarkersAlongSpline()
 
 		// Create a new child actor component for the path marker
 		FString ComponentName = FString::Printf(TEXT("PathMarker_%d"), i);
-		TObjectPtr<UChildActorComponent> MarkerComponent = NewObject<UChildActorComponent>(this, *ComponentName);
+		TObjectPtr<UChildActorComponent> MarkerComponent = NewObject<UChildActorComponent>(this, *ComponentName, RF_Transient | RF_DuplicateTransient);
+
+#if WITH_EDITOR
+		// Prevent selection of the marker component in editor
+		MarkerComponent->SetIsVisualizationComponent(true);
+#endif
 		
 		// Set up the component
 		MarkerComponent->SetChildActorClass(PathMarkerClass);
