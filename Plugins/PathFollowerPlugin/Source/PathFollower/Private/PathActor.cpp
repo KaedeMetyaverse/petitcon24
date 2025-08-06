@@ -40,17 +40,6 @@ void APathActor::OnConstruction(const FTransform& Transform)
 	SpawnPathMarkersAlongSpline();
 }
 
-#if WITH_EDITOR
-void APathActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	
-	// Refresh path markers when any property changes (mainly spline changes)
-	ClearPathMarkers();
-	SpawnPathMarkersAlongSpline();
-}
-#endif
-
 void APathActor::ClearPathMarkers()
 {
 	// Remove all previously spawned path marker components

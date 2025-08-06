@@ -18,10 +18,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
 	// Properties to be set by derived classes in constructor
 	float PathMarkerDistance = 100.0f;  // Distance between path markers
 	TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
