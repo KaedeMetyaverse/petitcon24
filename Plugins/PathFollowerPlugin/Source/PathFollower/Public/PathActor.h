@@ -33,7 +33,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<USplineComponent> PathSpline;
 
-// Array to keep track of spawned path marker components for cleanup
+	// Array to keep track of spawned path marker components for cleanup
 	UPROPERTY()
 	TArray<TObjectPtr<UChildActorComponent>> SpawnedPathMarkerComponents;
 
