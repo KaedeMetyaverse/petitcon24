@@ -20,7 +20,8 @@ protected:
 
 	// Properties to be set by derived classes in constructor
 	float PathMarkerDistance = 100.0f;  // Distance between path markers
-	TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Path")
+    TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
 
 private:
 	// Function to spawn path markers along the spline
