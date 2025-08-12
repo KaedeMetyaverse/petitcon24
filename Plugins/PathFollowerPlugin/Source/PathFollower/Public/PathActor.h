@@ -14,6 +14,9 @@ class PATHFOLLOWER_API APathActor : public AActor
 public:	
 	APathActor();
 
+    // C++専用: このアクターのスプラインコンポーネントを取得
+    TObjectPtr<USplineComponent> GetSplineComponent() const { return PathSpline; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;

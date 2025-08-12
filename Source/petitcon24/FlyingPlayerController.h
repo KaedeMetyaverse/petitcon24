@@ -1,0 +1,40 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerController.h"
+#include "Components/SplineComponent.h"
+#include "FlyingPlayerController.generated.h"
+
+// C++専用: スプライン移動完了を通知するデリゲート
+DECLARE_MULTICAST_DELEGATE(FMoveAlongSplineFinishedDelegate);
+
+UCLASS()
+class PETITCON24_API AFlyingPlayerController : public APlayerController
+{
+    GENERATED_BODY()
+
+public:
+    AFlyingPlayerController();
+
+    // 指定したスプラインに沿った自動移動を開始する（C++専用）
+    void StartMoveAlongSpline(TObjectPtr<USplineComponent> InSpline);
+
+    virtual void Tick(float DeltaSeconds) override;
+
+    // C++専用: スプライン移動完了デリゲートへのアクセサ
+    FMoveAlongSplineFinishedDelegate& OnMoveAlongSplineFinished() { return MoveAlongSplineFinishedDelegate; }
+
+private:
+    // 追従スピード（クラス定数）
+    static constexpr float SplineMoveSpeed = 600.f;
+
+    TObjectPtr<USplineComponent> ActiveSpline;
+    float CurrentSplineDistance = 0.f;
+    bool bIsFollowingSpline = false;
+
+    // C++専用: 完了通知用デリゲート
+    FMoveAlongSplineFinishedDelegate MoveAlongSplineFinishedDelegate;
+
+    // 指定距離のスプライン位置・回転をPawnへ適用
+    void ApplyPawnTransformAtDistanceAlongSpline(float Distance, bool bSweep);
+};
