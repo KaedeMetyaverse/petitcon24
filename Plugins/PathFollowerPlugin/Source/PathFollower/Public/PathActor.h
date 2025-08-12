@@ -19,7 +19,7 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 	// Properties to be set by derived classes in constructor
-	float PathMarkerDistance = 100.0f;  // Distance between path markers
+	float PathMarkerDistance = 500.0f;  // Distance between path markers
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Path")
     TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
 
