@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "EngineUtils.h"
 #include "Logging/LogMacros.h"
+#include "FlyingCharacter.h"
 #include "Modules/ModuleManager.h"
 #include "Internationalization/Text.h"
 #if WITH_EDITOR
@@ -19,6 +20,8 @@ AFlyingGameMode::AFlyingGameMode()
 {
     // Set FlyingPlayerController as the default player controller
     PlayerControllerClass = AFlyingPlayerController::StaticClass();
+    // Set flying character as the default pawn
+    DefaultPawnClass = AFlyingCharacter::StaticClass();
 }
 
 void AFlyingGameMode::BeginPlay()
