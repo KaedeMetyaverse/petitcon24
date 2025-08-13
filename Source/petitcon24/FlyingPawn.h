@@ -9,7 +9,7 @@
 #include "Camera/CameraComponent.h"
 #include "FlyingPawn.generated.h"
 
-UCLASS()
+UCLASS(abstract)
 class PETITCON24_API AFlyingPawn : public APawn
 {
     GENERATED_BODY()
