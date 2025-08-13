@@ -5,6 +5,7 @@
 #include "UObject/ObjectPtr.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/ArrowComponent.h"
 #include "Camera/CameraComponent.h"
 #include "FlyingPawn.generated.h"
 
@@ -24,6 +25,13 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     TObjectPtr<UCameraComponent> Camera;
+
+private:
+#if WITH_EDITORONLY_DATA
+	/** Component shown in the editor only to indicate character facing */
+	UPROPERTY()
+	TObjectPtr<UArrowComponent> ArrowComponent;
+#endif
 };
 
 
