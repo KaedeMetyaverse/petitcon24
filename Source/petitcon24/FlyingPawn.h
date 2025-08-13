@@ -6,6 +6,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/ArrowComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
 #include "Camera/CameraComponent.h"
 #include "FlyingPawn.generated.h"
 
@@ -25,6 +26,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     TObjectPtr<UCameraComponent> Camera;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    TObjectPtr<UFloatingPawnMovement> MovementComponent;
 
 private:
 #if WITH_EDITORONLY_DATA

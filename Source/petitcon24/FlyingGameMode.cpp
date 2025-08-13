@@ -18,10 +18,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogFlyingGameMode, Log, All);
 #define LOCTEXT_NAMESPACE "FlyingGameMode"
 AFlyingGameMode::AFlyingGameMode()
 {
-    // Set FlyingPlayerController as the default player controller
-    PlayerControllerClass = AFlyingPlayerController::StaticClass();
-    // Set flying character as the default pawn
-    DefaultPawnClass = AFlyingPawn::StaticClass();
 }
 
 void AFlyingGameMode::BeginPlay()

@@ -14,6 +14,14 @@ AFlyingPawn::AFlyingPawn()
     Camera->SetRelativeLocation(FVector(-360, 0, 20));
     Camera->SetRelativeRotation(FRotator(-10, 0, 0));
 
+    MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComponent"));
+    MovementComponent->UpdatedComponent = SkeletalMesh;
+
+    // コントローラーの回転に自動追従
+    bUseControllerRotationYaw = true;
+    bUseControllerRotationPitch = true;
+    bUseControllerRotationRoll = true;
+
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	if (ArrowComponent)

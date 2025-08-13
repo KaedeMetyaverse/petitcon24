@@ -8,7 +8,7 @@
 #include "PathSequenceInfo.h"
 #include "FlyingGameMode.generated.h"
 
-UCLASS()
+UCLASS(abstract)
 class PETITCON24_API AFlyingGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
