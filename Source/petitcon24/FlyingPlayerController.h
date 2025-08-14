@@ -23,6 +23,9 @@ public:
 
     virtual void Tick(float DeltaSeconds) override;
 
+    virtual void OnPossess(APawn* InPawn) override;
+    virtual void OnUnPossess() override;
+
     // C++専用: スプライン移動完了デリゲートへのアクセサ
     FMoveAlongSplineFinishedDelegate& OnMoveAlongSplineFinished() { return MoveAlongSplineFinishedDelegate; }
 
@@ -39,9 +42,20 @@ private:
     // 追従スピード（クラス定数）
     static constexpr float SplineMoveSpeed = 600.f;
 
+    // ピボットからの許容移動半径
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="SplineFollow", meta=(AllowPrivateAccess="true"))
+    float AllowedMoveRadius = 200.f;
+
+private:
     TObjectPtr<USplineComponent> ActiveSpline;
     float CurrentSplineDistance = 0.f;
     bool bIsFollowingSpline = false;
+
+    // スプライン上の現在のピボット（ApplyPawnTransformAtDistanceAlongSpline で更新）
+    FVector CurrentSplinePivotLocation = FVector::ZeroVector;
+
+    // UpdatedComponent の初期ローカル位置（Pawn のルートに対する相対位置）
+    FVector UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
 
     // C++専用: 完了通知用デリゲート
     FMoveAlongSplineFinishedDelegate MoveAlongSplineFinishedDelegate;

@@ -1,6 +1,8 @@
 #include "FlyingPlayerController.h"
 #include "Components/SplineComponent.h"
+#include "Components/SceneComponent.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
@@ -36,6 +38,9 @@ void AFlyingPlayerController::ApplyPawnTransformAtDistanceAlongSpline(const floa
     // 位置は Pawn へ、回転はコントローラーへ適用（Pawn は bUseControllerRotation* で追従）
     ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ bSweep);
     SetControlRotation(NewRotation);
+
+    // ピボットを更新
+    CurrentSplinePivotLocation = NewLocation;
 }
 
 void AFlyingPlayerController::StartMoveAlongSpline(TObjectPtr<USplineComponent> InSpline)
@@ -78,6 +83,62 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         MoveAlongSplineFinishedDelegate.Broadcast();
     }
+
+    // スプライン追従中の移動範囲制限（UpdatedComponent を半径内に拘束）
+    if (APawn* ControlledPawn = GetPawn())
+    {
+        if (UPawnMovementComponent* Updated = ControlledPawn->GetMovementComponent())
+        {
+            const FVector ComponentLocation = Updated->GetActorLocation();
+
+            // ピボット＋初期ローカルオフセット（Pawn のワールド回転を考慮して変換）を中心にする
+            FVector ClampCenter = CurrentSplinePivotLocation;
+            const FTransform PawnXform = ControlledPawn->GetActorTransform();
+            const FVector WorldOffset = PawnXform.TransformVector(UpdatedComponentInitialLocalOffset);
+            ClampCenter += WorldOffset;
+
+            const FVector ToComponent = ComponentLocation - ClampCenter;
+
+            const double DistanceFromPivot = ToComponent.Length();
+            if (DistanceFromPivot > static_cast<double>(AllowedMoveRadius))
+            {
+                const FVector ClampedOffset = ToComponent.GetSafeNormal(UE_SMALL_NUMBER) * AllowedMoveRadius;
+                const FVector ClampedLocation = ClampCenter + ClampedOffset;
+
+                // スイープ無しでテレポートして範囲内へ収める（移動対象は UpdatedComponent）
+                if (USceneComponent* UpdatedComp = Updated->UpdatedComponent)
+                {
+                    FHitResult TeleportHit;
+                    UpdatedComp->SetWorldLocation(ClampedLocation, /*bSweep*/ false, /*OutHit*/ &TeleportHit, /*Teleport*/ ETeleportType::TeleportPhysics);
+                }
+            }
+        }
+    }
+}
+
+void AFlyingPlayerController::OnPossess(APawn* InPawn)
+{
+    Super::OnPossess(InPawn);
+
+    UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
+
+    if (APawn* ControlledPawn = GetPawn())
+    {
+        if (UPawnMovementComponent* MoveComp = ControlledPawn->GetMovementComponent())
+        {
+            if (USceneComponent* UpdatedComp = MoveComp->UpdatedComponent)
+            {
+                // Pawn のルート（RootComponent）に対する UpdatedComponent のローカル位置
+                UpdatedComponentInitialLocalOffset = UpdatedComp->GetRelativeLocation();
+            }
+        }
+    }
+}
+
+void AFlyingPlayerController::OnUnPossess()
+{
+    Super::OnUnPossess();
+    UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
 }
 
 void AFlyingPlayerController::SetupInputComponent() 
