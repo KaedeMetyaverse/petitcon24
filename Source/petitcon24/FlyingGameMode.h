@@ -5,7 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "FlyingPlayerController.h"
 #include "PathActor.h"
-#include "PathSequenceInfo.h"
+#include "UObject/SoftObjectPtr.h"
 #include "FlyingGameMode.generated.h"
 
 UCLASS(abstract)
@@ -28,8 +28,24 @@ private:
     // コールバック: 1本のスプライン完了時
     void HandleMoveAlongSplineFinished();
 
+    // 指定レベル内の唯一の APathActor を取得（見つからない/複数あるなら nullptr）
+    APathActor* FindUniquePathActorInStreamingLevel(ULevel* Level) const;
+
+    // 非ブロッキングのステージ切替フロー
+    void ProceedUnloadPreviousStage();
+    void ProceedLoadCurrentStage();
+
+    UFUNCTION()
+    void OnStageUnloaded();
+
+    UFUNCTION()
+    void OnStageLoaded();
+
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;
     int32 CurrentPathIndex = INDEX_NONE;
-    TArray<TObjectPtr<APathActor>> PathActorsSequence;
+    
+    // ステージ（レベル）の順序配列
+    UPROPERTY(EditDefaultsOnly, Category = "Stages")
+    TArray<TSoftObjectPtr<UWorld>> Stages;
 };
