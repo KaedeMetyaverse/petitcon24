@@ -7,8 +7,8 @@ public class petitcon24 : ModuleRules
 	public petitcon24(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "PathFollower", "UMG" });
+		
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "PathFollower", "UMG", "LevelSequence", "MovieScene" });
 
         if (Target.bBuildEditor)
         {

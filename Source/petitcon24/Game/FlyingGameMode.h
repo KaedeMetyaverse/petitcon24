@@ -6,6 +6,10 @@
 #include "FlyingPlayerController.h"
 #include "PathActor.h"
 #include "UObject/SoftObjectPtr.h"
+#include "Engine/Level.h"
+#include "LevelSequence.h"
+#include "LevelSequenceActor.h"
+#include "LevelSequencePlayer.h"
 #include "FlyingGameMode.generated.h"
 
 UCLASS(abstract)
@@ -19,11 +23,17 @@ public:
     virtual void BeginPlay() override;
 
 private:
+    // オープニング用レベルシーケンスを再生する
+    void PlayOpeningSequence();
+
     // シーケンス開始
     void StartSequence();
 
     // 次の PathActor のスプラインへ移動開始。範囲外なら何もしない
     void TryStartNextPath();
+
+    // 現在のステージに対して移動を開始する（既にロード済みのレベルを受け取る）
+    void StartMovementForCurrentStage(ULevel* LoadedLevel);
 
     // コールバック: 1本のスプライン完了時
     void HandleMoveAlongSplineFinished();
@@ -41,11 +51,30 @@ private:
     UFUNCTION()
     void OnStageLoaded();
 
+    // オープニングシーケンスの再生完了
+    UFUNCTION()
+    void HandlePlayOpeningSequenceFinished();
+
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;
     int32 CurrentPathIndex = INDEX_NONE;
+
+    // 現在ロード済みのレベルをキャッシュ
+    UPROPERTY()
+    TObjectPtr<ULevel> CurrentLoadedLevel;
     
     // ステージ（レベル）の順序配列
     UPROPERTY(EditDefaultsOnly, Category = "Stages")
     TArray<TSoftObjectPtr<UWorld>> Stages;
+
+    // ゲーム開始時に再生するレベルシーケンス（任意）
+    UPROPERTY(EditDefaultsOnly, Category = "Opening")
+    TSoftObjectPtr<ULevelSequence> OpeningSequence;
+
+    // 再生用に保持（GC対策）
+    UPROPERTY()
+    TObjectPtr<ULevelSequencePlayer> OpeningSequencePlayer;
+
+    UPROPERTY()
+    TObjectPtr<ALevelSequenceActor> OpeningSequenceActor;
 };

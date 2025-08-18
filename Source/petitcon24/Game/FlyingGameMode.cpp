@@ -26,7 +26,53 @@ AFlyingGameMode::AFlyingGameMode()
 void AFlyingGameMode::BeginPlay()
 {
     Super::BeginPlay();
+
+    // 既存のステージ進行フローを開始
     StartSequence();
+}
+
+void AFlyingGameMode::PlayOpeningSequence()
+{
+    // 未設定なら即移動開始
+    if (!OpeningSequence.IsValid() && !OpeningSequence.ToSoftObjectPath().IsValid())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("OpeningSequence is not set in GameMode."));
+        StartMovementForCurrentStage(CurrentLoadedLevel);
+        return;
+    }
+
+    ULevelSequence* SequenceAsset = OpeningSequence.LoadSynchronous();
+    check(SequenceAsset != nullptr);
+
+    ALevelSequenceActor* OutActor = nullptr;
+    ULevelSequencePlayer* Player = ULevelSequencePlayer::CreateLevelSequencePlayer(this, SequenceAsset, FMovieSceneSequencePlaybackSettings(), OutActor);
+    check(Player != nullptr);
+    check(OutActor != nullptr);
+
+    OpeningSequencePlayer = Player;
+    OpeningSequenceActor = OutActor;
+
+    // 再生完了イベントにバインド
+    Player->OnFinished.AddDynamic(this, &AFlyingGameMode::HandlePlayOpeningSequenceFinished);
+
+    Player->Play();
+}
+
+void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
+{
+    check(OpeningSequencePlayer != nullptr);
+    OpeningSequencePlayer->OnFinished.RemoveDynamic(this, &AFlyingGameMode::HandlePlayOpeningSequenceFinished);
+
+    // Opening 再生後に移動開始
+    check(CurrentLoadedLevel != nullptr);
+    StartMovementForCurrentStage(CurrentLoadedLevel);
 }
 
 void AFlyingGameMode::StartSequence()
@@ -133,7 +179,23 @@ void AFlyingGameMode::OnStageLoaded()
         return;
     }
 
-    ULevel* LoadedLevel = Streaming->GetLoadedLevel();
+    // キャッシュ更新
+    CurrentLoadedLevel = Streaming->GetLoadedLevel();
+    check(CurrentLoadedLevel != nullptr);
+
+    // 最初のステージで Opening を再生
+    if (0 == CurrentPathIndex)
+    {
+        PlayOpeningSequence();
+        return;
+    }
+
+    // Opening不要 or 再生済みなら、移動開始
+    StartMovementForCurrentStage(CurrentLoadedLevel);
+}
+
+void AFlyingGameMode::StartMovementForCurrentStage(ULevel* LoadedLevel)
+{
     check(LoadedLevel != nullptr);
 
     APathActor* PathActor = FindUniquePathActorInStreamingLevel(LoadedLevel);
