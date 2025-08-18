@@ -55,6 +55,9 @@ private:
     UFUNCTION()
     void HandlePlayOpeningSequenceFinished();
 
+    // Persistent Level 内でタグ一致の Pawn を探す
+    APawn* FindPawnByTagInPersistentLevel(FName Tag) const;
+
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;
     int32 CurrentPathIndex = INDEX_NONE;
@@ -70,6 +73,10 @@ private:
     // ゲーム開始時に再生するレベルシーケンス（任意）
     UPROPERTY(EditDefaultsOnly, Category = "Opening")
     TSoftObjectPtr<ULevelSequence> OpeningSequence;
+
+    // Opening 後に Possess する対象のタグ（任意）
+    UPROPERTY(EditDefaultsOnly, Category = "Opening")
+    FName FlyingPawnTag;
 
     // 再生用に保持（GC対策）
     UPROPERTY()

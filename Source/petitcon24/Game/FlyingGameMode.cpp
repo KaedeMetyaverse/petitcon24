@@ -70,7 +70,45 @@ void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
     check(OpeningSequencePlayer != nullptr);
     OpeningSequencePlayer->OnFinished.RemoveDynamic(this, &AFlyingGameMode::HandlePlayOpeningSequenceFinished);
 
-    // Opening 再生後に移動開始
+    // タグ未設定はログ出力して終了
+    if (FlyingPawnTag.IsNone())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(LOCTEXT("OpeningPossessTagNotSet", "FlyingPawnTag is not set in GameMode."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("FlyingPawnTag is not set in GameMode."));
+        return;
+    }
+
+    const UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    // Opening 再生後に、Persistent Level 上の指定タグPawnをPossess
+    APawn* TargetPawn = FindPawnByTagInPersistentLevel(FlyingPawnTag);
+    if (nullptr == TargetPawn)
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(FText::Format(LOCTEXT("OpeningPossessTargetNotFoundFmt", "Pawn with tag {0} not found in Persistent Level: {1}"), FText::FromName(FlyingPawnTag), FText::FromName(World->PersistentLevel->GetFName())));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("Pawn with tag %s not found in Persistent Level: %s"), *FlyingPawnTag.ToString(), *World->PersistentLevel->GetName());
+        return;
+    }
+
+    APlayerController* PC = World->GetFirstPlayerController();
+    check(PC != nullptr);
+
+    PC->UnPossess();
+    PC->Possess(TargetPawn);
+
+    // その後、移動開始（キャッシュを利用）
     check(CurrentLoadedLevel != nullptr);
     StartMovementForCurrentStage(CurrentLoadedLevel);
 }
@@ -269,6 +307,36 @@ APathActor* AFlyingGameMode::FindUniquePathActorInStreamingLevel(ULevel* Level) 
     }
 
     return FirstFound;
+}
+
+APawn* AFlyingGameMode::FindPawnByTagInPersistentLevel(FName Tag) const
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    ULevel* Persistent = World->PersistentLevel;
+    check(Persistent != nullptr);
+
+    for (AActor* Actor : Persistent->Actors)
+    {
+	    if (nullptr == Actor)
+        {
+            continue;
+	    }
+
+        if (Actor->ActorHasTag(Tag))
+        {
+            APawn* Pawn = Cast<APawn>(Actor);
+            if (nullptr == Pawn) {
+                UE_LOG(LogFlyingGameMode, Log, TEXT("Actor: %s has tag: %s, but is not a Pawn"), *Actor->GetName(), *Tag.ToString());
+                continue;
+            }
+
+            return Pawn;
+        }
+    }
+
+    return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE
