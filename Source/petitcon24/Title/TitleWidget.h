@@ -27,5 +27,3 @@ private:
 	UFUNCTION()
 	void HandleStartClicked();
 };
-
-
