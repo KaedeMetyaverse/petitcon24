@@ -3,9 +3,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "UObject/SoftObjectPtr.h"
+#include "Components/Button.h"
 #include "TitleWidget.generated.h"
-
-class UButton;
 
 UCLASS()
 class PETITCON24_API UTitleWidget : public UUserWidget
