@@ -118,7 +118,20 @@ void AFlyingGameMode::OnStageLoaded()
     check(!CurrLongPackageName.IsEmpty());
 
     ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*CurrLongPackageName));
-    check(Streaming != nullptr && Streaming->IsLevelLoaded());
+    if (nullptr == Streaming || !Streaming->IsLevelLoaded())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(FText::Format(
+                LOCTEXT("StageNotInLevelsPanelFmt", "Streaming level not found or not loaded: {0}. Please add the stage to Window > Levels beforehand."),
+                FText::FromString(CurrLongPackageName)));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("Streaming level not found or not loaded: %s. Please add the stage to Window > Levels beforehand."), *CurrLongPackageName);
+        return;
+    }
 
     ULevel* LoadedLevel = Streaming->GetLoadedLevel();
     check(LoadedLevel != nullptr);
