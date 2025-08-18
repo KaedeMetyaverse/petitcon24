@@ -44,7 +44,7 @@ private:
 
     // ピボットからの許容移動半径
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="SplineFollow", meta=(AllowPrivateAccess="true"))
-    float AllowedMoveRadius = 200.f;
+    float AllowedMoveRadius = 100.f;
 
 private:
     TObjectPtr<USplineComponent> ActiveSpline;
