@@ -2,9 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "TitleWidget.h"
 #include "TitleGameMode.generated.h"
-
-class UTitleWidget;
 
 UCLASS()
 class PETITCON24_API ATitleGameMode : public AGameModeBase

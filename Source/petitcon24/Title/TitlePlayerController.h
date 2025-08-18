@@ -2,9 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "TitleWidget.h"
 #include "TitlePlayerController.generated.h"
-
-class UTitleWidget;
 
 UCLASS()
 class PETITCON24_API ATitlePlayerController : public APlayerController
