@@ -120,6 +120,13 @@ void AFlyingPlayerController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
 
+    // InputMode を GameOnly に戻す
+    {
+        FInputModeGameOnly GameOnlyMode;
+        SetInputMode(GameOnlyMode);
+        bShowMouseCursor = false;
+    }
+
     UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
 
     if (APawn* ControlledPawn = GetPawn())
