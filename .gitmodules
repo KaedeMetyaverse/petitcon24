@@ -1,0 +1,3 @@
+[submodule "UnrealBuildAndRunScript"]
+	path = UnrealBuildAndRunScript
+	url = https://github.com/Udon-Tobira/UnrealBuildAndRunScript.git

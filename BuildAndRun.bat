@@ -1,2 +1,2 @@
 @echo off
-.\Scripts\Fire-BuildAndRun.ps1.bat
+.\UnrealBuildAndRunScript\Fire-BuildAndRun.ps1.bat
