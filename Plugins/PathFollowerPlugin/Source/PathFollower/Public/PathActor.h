@@ -34,7 +34,7 @@ private:
 	void ClearPathMarkers();
 	
 private:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USplineComponent> PathSpline;
 
 	// Array to keep track of spawned path marker components for cleanup
