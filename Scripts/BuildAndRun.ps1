@@ -3,7 +3,9 @@ Param(
     [string]$Configuration = 'Development',
 
     [ValidateSet('Win64')]
-    [string]$Platform = 'Win64'
+    [string]$Platform = 'Win64',
+
+    [string]$UEVersion = '5.6'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,10 +49,17 @@ try {
     $projectName = $uproject.BaseName
     $uprojectPath = $uproject.FullName
 
-    # エンジンルート（固定: UE 5.6）
-    $resolvedEngineRoot = 'C:\\Program Files\\Epic Games\\UE_5.6'
+    # エンジンルート（別スクリプトで解決、見つからなければエラー）
+    $resolveScript = Join-Path $PSScriptRoot 'Get-UEInstallPath.ps1'
+    if (-not (Test-Path -LiteralPath $resolveScript)) {
+        throw "Get-UEInstallPath.ps1 が見つかりません。エンジンパスを解決できません。"
+    }
+    $resolvedEngineRoot = & $resolveScript -Version $UEVersion
+    if (-not $resolvedEngineRoot) {
+        throw ("マニフェストから UE_{0} のインストール先が見つかりませんでした。" -f $UEVersion)
+    }
     if (-not (Test-Path $resolvedEngineRoot)) {
-        throw "Unreal Engine 5.6 が見つかりません: $resolvedEngineRoot"
+        throw ("Unreal Engine {0} のディレクトリが存在しません: {1}" -f $UEVersion, $resolvedEngineRoot)
     }
 
     $buildBat = Join-Path $resolvedEngineRoot 'Engine\\Build\\BatchFiles\\Build.bat'
