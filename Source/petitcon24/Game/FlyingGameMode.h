@@ -32,6 +32,16 @@ private:
     // 次の PathActor のスプラインへ移動開始。範囲外なら何もしない
     void TryStartNextPath();
 
+    // エンディング用レベルシーケンスを再生する
+    void PlayEndingSequence();
+
+    // 共通: レベルシーケンスから Player/Actor を生成（未設定時は警告して false）
+    bool CreateSequencePlayer(
+        const TSoftObjectPtr<ULevelSequence>& SequencePtr,
+        TObjectPtr<ULevelSequencePlayer>& OutPlayer,
+        TObjectPtr<ALevelSequenceActor>& OutActor,
+        const FText& NotSetMessage);
+
     // 現在のステージに対して移動を開始する（既にロード済みのレベルを受け取る）
     void StartMovementForCurrentStage(ULevel* LoadedLevel);
 
@@ -55,6 +65,10 @@ private:
     UFUNCTION()
     void HandlePlayOpeningSequenceFinished();
 
+    // エンディングシーケンスの再生完了
+    UFUNCTION()
+    void HandlePlayEndingSequenceFinished();
+
     // Persistent Level 内でタグ一致の Pawn を探す
     APawn* FindPawnByTagInPersistentLevel(FName Tag) const;
 
@@ -67,15 +81,15 @@ private:
     TObjectPtr<ULevel> CurrentLoadedLevel;
     
     // ステージ（レベル）の順序配列
-    UPROPERTY(EditDefaultsOnly, Category = "Stages")
+    UPROPERTY(EditDefaultsOnly, Category = "Game")
     TArray<TSoftObjectPtr<UWorld>> Stages;
 
-    // ゲーム開始時に再生するレベルシーケンス（任意）
-    UPROPERTY(EditDefaultsOnly, Category = "Opening")
+    // ゲーム開始時に再生するレベルシーケンス
+    UPROPERTY(EditDefaultsOnly, Category = "Game")
     TSoftObjectPtr<ULevelSequence> OpeningSequence;
 
-    // Opening 後に Possess する対象のタグ（任意）
-    UPROPERTY(EditDefaultsOnly, Category = "Opening")
+    // Opening 後に Possess する対象のタグ
+    UPROPERTY(EditDefaultsOnly, Category = "Game")
     FName FlyingPawnTag;
 
     // 再生用に保持（GC対策）
@@ -84,4 +98,15 @@ private:
 
     UPROPERTY()
     TObjectPtr<ALevelSequenceActor> OpeningSequenceActor;
+
+    // 全行程完了時に再生するレベルシーケンス
+    UPROPERTY(EditDefaultsOnly, Category = "Game")
+    TSoftObjectPtr<ULevelSequence> EndingSequence;
+
+    // 再生用に保持（GC対策）
+    UPROPERTY()
+    TObjectPtr<ULevelSequencePlayer> EndingSequencePlayer;
+
+    UPROPERTY()
+    TObjectPtr<ALevelSequenceActor> EndingSequenceActor;
 };

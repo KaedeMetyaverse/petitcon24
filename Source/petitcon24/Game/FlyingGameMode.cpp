@@ -34,35 +34,15 @@ void AFlyingGameMode::BeginPlay()
 void AFlyingGameMode::PlayOpeningSequence()
 {
     // 未設定なら即移動開始
-    if (!OpeningSequence.IsValid() && !OpeningSequence.ToSoftObjectPath().IsValid())
+    if (!CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode.")))
     {
-#if WITH_EDITOR
-        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
-        {
-            FMessageLog Log("PIE");
-            Log.Warning(LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode."));
-        }
-#endif
-        UE_LOG(LogFlyingGameMode, Warning, TEXT("OpeningSequence is not set in GameMode."));
         StartMovementForCurrentStage(CurrentLoadedLevel);
         return;
     }
 
-    ULevelSequence* SequenceAsset = OpeningSequence.LoadSynchronous();
-    check(SequenceAsset != nullptr);
-
-    ALevelSequenceActor* OutActor = nullptr;
-    ULevelSequencePlayer* Player = ULevelSequencePlayer::CreateLevelSequencePlayer(this, SequenceAsset, FMovieSceneSequencePlaybackSettings(), OutActor);
-    check(Player != nullptr);
-    check(OutActor != nullptr);
-
-    OpeningSequencePlayer = Player;
-    OpeningSequenceActor = OutActor;
-
     // 再生完了イベントにバインド
-    Player->OnFinished.AddDynamic(this, &AFlyingGameMode::HandlePlayOpeningSequenceFinished);
-
-    Player->Play();
+    OpeningSequencePlayer->OnFinished.AddDynamic(this, &AFlyingGameMode::HandlePlayOpeningSequenceFinished);
+    OpeningSequencePlayer->Play();
 }
 
 void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
@@ -144,6 +124,60 @@ void AFlyingGameMode::StartSequence()
     TryStartNextPath();
 }
 
+void AFlyingGameMode::PlayEndingSequence()
+{
+    // 未設定なら何もせず終了
+    if (!CreateSequencePlayer(EndingSequence, EndingSequencePlayer, EndingSequenceActor, LOCTEXT("EndingSequenceNotSet", "EndingSequence is not set in GameMode.")))
+    {
+        return;
+    }
+
+    EndingSequencePlayer->OnFinished.AddDynamic(this, &AFlyingGameMode::HandlePlayEndingSequenceFinished);
+    EndingSequencePlayer->Play();
+}
+
+void AFlyingGameMode::HandlePlayEndingSequenceFinished()
+{
+    if (EndingSequencePlayer)
+    {
+        EndingSequencePlayer->OnFinished.RemoveDynamic(this, &AFlyingGameMode::HandlePlayEndingSequenceFinished);
+    }
+
+    // 必要ならここでポストエンディングのフロー（例: メニュー遷移）を実装
+}
+
+bool AFlyingGameMode::CreateSequencePlayer(
+    const TSoftObjectPtr<ULevelSequence>& SequencePtr,
+    TObjectPtr<ULevelSequencePlayer>& OutPlayer,
+    TObjectPtr<ALevelSequenceActor>& OutActor,
+    const FText& NotSetMessage)
+{
+    if (!SequencePtr.IsValid() && !SequencePtr.ToSoftObjectPath().IsValid())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(NotSetMessage);
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("%s"), *NotSetMessage.ToString());
+        return false;
+    }
+
+    ULevelSequence* SequenceAsset = SequencePtr.LoadSynchronous();
+    check(SequenceAsset != nullptr);
+
+    ALevelSequenceActor* CreatedActor = nullptr;
+    ULevelSequencePlayer* CreatedPlayer = ULevelSequencePlayer::CreateLevelSequencePlayer(this, SequenceAsset, FMovieSceneSequencePlaybackSettings(), CreatedActor);
+    check(CreatedPlayer != nullptr);
+    check(CreatedActor != nullptr);
+
+    OutPlayer = CreatedPlayer;
+    OutActor = CreatedActor;
+    return true;
+}
+
 void AFlyingGameMode::TryStartNextPath()
 {
     check(nullptr != CachedFlyingPlayerController);
@@ -151,7 +185,16 @@ void AFlyingGameMode::TryStartNextPath()
     ++CurrentPathIndex;
     if (!Stages.IsValidIndex(CurrentPathIndex))
     {
-        // 全行程完了
+        // 全行程完了: PlayerController から Pawn を UnPossess し、エンディングを再生
+        const UWorld* World = GetWorld();
+        check(World != nullptr);
+
+        APlayerController* PC = World->GetFirstPlayerController();
+        check(PC != nullptr);
+
+        PC->UnPossess();
+        PlayEndingSequence();
+
         return;
     }
 
