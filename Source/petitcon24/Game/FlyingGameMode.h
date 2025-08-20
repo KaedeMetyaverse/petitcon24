@@ -13,6 +13,8 @@
 #include "TimerManager.h"
 #include "LoadingOverlayBase.h"
 #include "Blueprint/UserWidget.h"
+#include "InGameInfoViewModel.h"
+#include "InGameInfoSubsystem.h"
 #include "FlyingGameMode.generated.h"
 
 UCLASS(abstract)
@@ -178,4 +180,11 @@ private:
 
     void ShowHowToWidget();
     void HideHowToWidget();
+
+    // MVVM: In-Game 情報表示用 ViewModel は LocalPlayerSubsystem で管理
+    void UpdateViewModelStageState();
+
+    // 一度だけ取得して保持するローカルプレイヤー用サブシステム
+    UPROPERTY()
+    TObjectPtr<UInGameInfoSubsystem> InGameInfoSubsystem;
 };

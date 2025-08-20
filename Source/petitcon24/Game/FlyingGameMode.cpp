@@ -13,6 +13,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/Level.h"
 #include "Kismet/GameplayStatics.h"
+#include "InGameInfoSubsystem.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #endif
@@ -27,6 +28,21 @@ AFlyingGameMode::AFlyingGameMode()
 void AFlyingGameMode::BeginPlay()
 {
     Super::BeginPlay();
+
+    // InGameInfoSubsystem をキャッシュし、StageCount を初期設定
+    {
+        UWorld* World = GetWorld();
+        check(World != nullptr);
+        APlayerController* PC = World->GetFirstPlayerController();
+        check(PC != nullptr);
+        ULocalPlayer* LP = PC->GetLocalPlayer();
+        check(LP != nullptr);
+        InGameInfoSubsystem = LP->GetSubsystem<UInGameInfoSubsystem>();
+        check(InGameInfoSubsystem != nullptr);
+
+        // ステージ総数は不変なので最初の一回のみ設定
+        InGameInfoSubsystem->SetStageCount(Stages.Num());
+    }
 
     // 既存のステージ進行フローを開始
     StartSequence();
@@ -234,6 +250,15 @@ void AFlyingGameMode::StartSequence()
 
     CurrentPathIndex = -1;
     TryStartNextPath();
+}
+
+void AFlyingGameMode::UpdateViewModelStageState()
+{
+    check(InGameInfoSubsystem != nullptr);
+
+    const int32 CurrentStageNumber = CurrentPathIndex + 1;
+
+    InGameInfoSubsystem->SetCurrentStageNumber(CurrentStageNumber);
 }
 
 void AFlyingGameMode::PlayEndingSequence()
@@ -574,6 +599,9 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
                     CachedFlyingPlayerController->PrepareMoveTowardsSplineStartDuringFade(SplineComp, FadeOutDurationSeconds);
                 }
             }
+
+            // 新しいステージへの切替開始時（ロード画面フェードアウト開始時）にVMを更新
+            UpdateViewModelStageState();
             StartFade(/*From*/ 1.f, /*To*/ 0.f, FadeOutDurationSeconds, /*bIsFadeIn*/ false);
         }
         else
@@ -583,10 +611,14 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
             {
                 if (0 == CurrentPathIndex)
                 {
+                    // 最初のステージでも、切替開始時点で番号更新
+                    UpdateViewModelStageState();
                     PlayOpeningSequence();
                 }
                 else
                 {
+                    // オーバーレイなしで切替開始する場合も、開始時にVM更新
+                    UpdateViewModelStageState();
                     StartMovementForCurrentStage(CurrentLoadedLevel);
                     if (InGameInfoWidgetClass && !InGameInfoWidget)
                     {
