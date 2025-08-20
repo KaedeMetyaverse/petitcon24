@@ -89,4 +89,7 @@ private:
 
     // 入力処理の中身（Pawn に AddMovementInput する）
     void DoMoveControlledPawn(float Right, float Up);
+
+    // 現在所持している Pawn の UpdatedComponent を取得（null 安全）
+    class USceneComponent* GetPawnUpdatedComponent() const;
 };
