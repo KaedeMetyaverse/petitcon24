@@ -25,6 +25,9 @@ public:
     // FadeDurationSeconds の間だけ移動し、終了時にちょうど距離0のポイントへ到達させる
     void PrepareMoveTowardsSplineStartDuringFade(TObjectPtr<USplineComponent> InSpline, float FadeDurationSeconds);
 
+    // スプライン終点に到達した直後、フェードインが完了するまで最後の向きに向かって等速で直進する
+    void ContinueMoveForwardAfterSplineEndDuringFade(float FadeDurationSeconds);
+
     virtual void Tick(float DeltaSeconds) override;
 
     virtual void OnPossess(APawn* InPawn) override;
@@ -61,6 +64,12 @@ private:
     FRotator PreMoveTargetRotation = FRotator::ZeroRotator;
     float PreMoveRemainingSeconds = 0.f;
     float PreMoveTotalSeconds = 0.f;
+
+    // フェードイン中のポスト移動（終点から前進）
+    bool bIsPostMovingForwardAfterSplineEnd = false;
+    FVector PostMoveForwardDirection = FVector::ForwardVector;
+    float PostMoveRemainingSeconds = 0.f;
+    float PostMoveTotalSeconds = 0.f;
 
     // スプライン上の現在のピボット（ApplyPawnTransformAtDistanceAlongSpline で更新）
     FVector CurrentSplinePivotLocation = FVector::ZeroVector;

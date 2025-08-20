@@ -343,6 +343,10 @@ void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
     LoadingOverlayWidget->SetRenderOpacity(0.f);
     LoadingOverlayWidget->PlayLoadingVideo();
     bIsOverlayVisible = true;
+
+    // フェードインが完了するまで最後の向きで前進を続ける
+    check(nullptr != CachedFlyingPlayerController);
+    CachedFlyingPlayerController->ContinueMoveForwardAfterSplineEndDuringFade(FadeInDurationSeconds);
     StartFade(/*From*/ 0.f, /*To*/ 1.f, FadeInDurationSeconds, /*bIsFadeIn*/ true);
 
     // 最低表示時間のタイマー

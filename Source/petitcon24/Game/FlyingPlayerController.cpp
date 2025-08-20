@@ -50,6 +50,8 @@ void AFlyingPlayerController::StartMoveAlongSpline(TObjectPtr<USplineComponent> 
     CurrentSplineDistance = 0.f;
     // プレ移動フラグは終了
     bIsPreMovingTowardsSplineStart = false;
+    // ポスト移動も念のため終了
+    bIsPostMovingForwardAfterSplineEnd = false;
     bIsFollowingSpline = true;
 
     // スタート地点へ即時移動（衝突無しでテレポート相当）
@@ -91,6 +93,21 @@ void AFlyingPlayerController::PrepareMoveTowardsSplineStartDuringFade(TObjectPtr
     PreMoveRemainingSeconds = PreMoveTotalSeconds;
 }
 
+void AFlyingPlayerController::ContinueMoveForwardAfterSplineEndDuringFade(float FadeDurationSeconds)
+{
+    // スプライン終端での向きで前進し続ける
+    check(ActiveSpline != nullptr);
+
+    const float SplineLength = ActiveSpline->GetSplineLength();
+    const FRotator EndRotation = ActiveSpline->GetRotationAtDistanceAlongSpline(SplineLength, ESplineCoordinateSpace::World);
+    PostMoveForwardDirection = EndRotation.Vector();
+
+    // 残時間
+    PostMoveTotalSeconds = FMath::Max(0.f, FadeDurationSeconds);
+    PostMoveRemainingSeconds = PostMoveTotalSeconds;
+    bIsPostMovingForwardAfterSplineEnd = (PostMoveTotalSeconds > 0.f);
+}
+
 void AFlyingPlayerController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
@@ -121,6 +138,26 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
                 SetControlRotation(PreMoveTargetRotation);
                 CurrentSplinePivotLocation = NewLocation;
                 PreMoveRemainingSeconds -= DeltaSeconds;
+            }
+        }
+    }
+
+    // フェードイン中のポスト移動（終点から前方へ等速直進）
+    if (bIsPostMovingForwardAfterSplineEnd)
+    {
+        if (APawn* ControlledPawn = GetPawn())
+        {
+            const float Step = SplineMoveSpeed * DeltaSeconds;
+            const FVector CurrentLocation = ControlledPawn->GetActorLocation();
+            const FVector NewLocation = CurrentLocation + PostMoveForwardDirection * Step;
+            ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ false);
+            SetControlRotation(PostMoveForwardDirection.Rotation());
+            CurrentSplinePivotLocation = NewLocation;
+
+            PostMoveRemainingSeconds -= DeltaSeconds;
+            if (PostMoveRemainingSeconds <= 0.f)
+            {
+                bIsPostMovingForwardAfterSplineEnd = false;
             }
         }
     }
