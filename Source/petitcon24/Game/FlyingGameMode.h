@@ -10,6 +10,8 @@
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
+#include "TimerManager.h"
+#include "LoadingOverlayBase.h"
 #include "FlyingGameMode.generated.h"
 
 UCLASS(abstract)
@@ -109,4 +111,42 @@ private:
 
     UPROPERTY()
     TObjectPtr<ALevelSequenceActor> EndingSequenceActor;
+
+    // ローディング動画オーバーレイ関連
+    UPROPERTY(EditDefaultsOnly, Category = "LoadingOverlay")
+    TSubclassOf<ULoadingOverlayBase> LoadingOverlayClass;
+
+    UPROPERTY()
+    TObjectPtr<ULoadingOverlayBase> LoadingOverlayWidget;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LoadingOverlay")
+    float LoadingMinDurationSeconds = 5.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LoadingOverlay")
+    float FadeInDurationSeconds = 1.5f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LoadingOverlay")
+    float FadeOutDurationSeconds = 1.5f;
+
+    // フェード・状態管理
+    bool bIsOverlayVisible = false;
+    bool bMinDurationSatisfied = false;
+    bool bNextStageReady = false;
+    bool bPendingUnloadAfterFadeIn = false;
+
+    float FadeElapsedSeconds = 0.f;
+    float FadeTotalDuration = 0.f;
+    float FadeFromOpacity = 0.f;
+    float FadeToOpacity = 1.f;
+
+    FTimerHandle FadeTimerHandle;
+    FTimerHandle MinDurationTimerHandle;
+
+    void BeginLoadingOverlayBeforeTransition();
+    void StartFade(float FromOpacity, float ToOpacity, float Duration, bool bIsFadeIn);
+    void TickFade();
+    void OnFadeInFinished();
+    void OnFadeOutFinished();
+    void OnMinDurationReached();
+    void TryFinishTransitionAfterLoadAndMin();
 };

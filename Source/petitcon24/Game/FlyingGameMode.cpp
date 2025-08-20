@@ -7,6 +7,7 @@
 #include "EngineUtils.h"
 #include "Logging/LogMacros.h"
 #include "FlyingPawn.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Modules/ModuleManager.h"
 #include "Internationalization/Text.h"
 #include "Engine/LevelStreaming.h"
@@ -198,7 +199,17 @@ void AFlyingGameMode::TryStartNextPath()
         return;
     }
 
-    ProceedUnloadPreviousStage();
+    // 0番目（最初の）ステージではローディング画面を出さない
+    if (CurrentPathIndex == 0)
+    {
+        // 最小表示時間は満了扱いにして、通常の非同期ロードへ
+        bMinDurationSatisfied = true;
+        ProceedUnloadPreviousStage();
+        return;
+    }
+
+    // 以降のステージ切替前はローディングオーバーレイをフェードイン
+    BeginLoadingOverlayBeforeTransition();
 }
 
 void AFlyingGameMode::HandleMoveAlongSplineFinished()
@@ -264,15 +275,19 @@ void AFlyingGameMode::OnStageLoaded()
     CurrentLoadedLevel = Streaming->GetLoadedLevel();
     check(CurrentLoadedLevel != nullptr);
 
-    // 最初のステージで Opening を再生
+    // 次ステージのロード完了フラグ
+    bNextStageReady = true;
+
+    // Opening は 0 番目のステージロード時にだけ処理
     if (0 == CurrentPathIndex)
     {
-        PlayOpeningSequence();
+        // ローディングオーバーレイが出ていた場合でも、Opening 再生前にフェードアウトを行う
+        TryFinishTransitionAfterLoadAndMin();
         return;
     }
 
-    // Opening不要 or 再生済みなら、移動開始
-    StartMovementForCurrentStage(CurrentLoadedLevel);
+    // 通常フロー: フェードアウト完了を待ってから移動開始
+    TryFinishTransitionAfterLoadAndMin();
 }
 
 void AFlyingGameMode::StartMovementForCurrentStage(ULevel* LoadedLevel)
@@ -290,6 +305,164 @@ void AFlyingGameMode::StartMovementForCurrentStage(ULevel* LoadedLevel)
     check(SplineComp != nullptr);
 
     CachedFlyingPlayerController->StartMoveAlongSpline(SplineComp);
+}
+
+void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    bMinDurationSatisfied = false;
+    bNextStageReady = false;
+
+    if (!LoadingOverlayClass)
+    {
+        // オーバーレイ未設定: MessageLog + 通常ログ
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("LoadingOverlayClassNotSet", "LoadingOverlayClass is not set in GameMode. Fallback to no overlay."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("LoadingOverlayClass is not set in GameMode. Fallback to no overlay."));
+
+        // 最小時間制約を解除して通常進行
+        bMinDurationSatisfied = true;
+        ProceedUnloadPreviousStage();
+        return;
+    }
+
+    if (!LoadingOverlayWidget)
+    {
+        LoadingOverlayWidget = CreateWidget<ULoadingOverlayBase>(World, LoadingOverlayClass);
+        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 10000);
+    }
+
+    // 映像再生とフェードイン
+    LoadingOverlayWidget->SetRenderOpacity(0.f);
+    LoadingOverlayWidget->PlayLoadingVideo();
+    bIsOverlayVisible = true;
+    StartFade(/*From*/ 0.f, /*To*/ 1.f, FadeInDurationSeconds, /*bIsFadeIn*/ true);
+
+    // 最低表示時間のタイマー
+    if (LoadingMinDurationSeconds > 0.f)
+    {
+        World->GetTimerManager().SetTimer(MinDurationTimerHandle, this, &AFlyingGameMode::OnMinDurationReached, LoadingMinDurationSeconds, /*bLoop*/ false);
+    }
+    else
+    {
+        bMinDurationSatisfied = true;
+    }
+
+    // フェードイン完了後にアンロードするため、フラグを立てる
+    bPendingUnloadAfterFadeIn = true;
+}
+
+void AFlyingGameMode::StartFade(float FromOpacity, float ToOpacity, float Duration, bool /*bIsFadeIn*/)
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+    check(LoadingOverlayWidget != nullptr);
+
+    FadeFromOpacity = FromOpacity;
+    FadeToOpacity = ToOpacity;
+    FadeTotalDuration = FMath::Max(0.01f, Duration);
+    FadeElapsedSeconds = 0.f;
+
+    World->GetTimerManager().SetTimer(FadeTimerHandle, this, &AFlyingGameMode::TickFade, 0.01f, /*bLoop*/ true);
+}
+
+void AFlyingGameMode::TickFade()
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+    check(LoadingOverlayWidget != nullptr);
+
+    FadeElapsedSeconds += 0.01f;
+    const float Alpha = FMath::Clamp(FadeElapsedSeconds / FadeTotalDuration, 0.f, 1.f);
+    const float Opacity = FMath::Lerp(FadeFromOpacity, FadeToOpacity, Alpha);
+    LoadingOverlayWidget->SetRenderOpacity(Opacity);
+
+    if (Alpha >= 1.f)
+    {
+        World->GetTimerManager().ClearTimer(FadeTimerHandle);
+        if (FMath::IsNearlyEqual(FadeToOpacity, 1.f))
+        {
+            OnFadeInFinished();
+        }
+        else
+        {
+            OnFadeOutFinished();
+        }
+    }
+}
+
+void AFlyingGameMode::OnFadeInFinished()
+{
+    // フェードイン完了。必要ならここでアンロードを開始
+    if (bPendingUnloadAfterFadeIn)
+    {
+        bPendingUnloadAfterFadeIn = false;
+        ProceedUnloadPreviousStage();
+    }
+}
+
+void AFlyingGameMode::OnFadeOutFinished()
+{
+    check(LoadingOverlayWidget != nullptr);
+
+    LoadingOverlayWidget->StopLoadingVideo();
+    LoadingOverlayWidget->RemoveFromParent();
+    LoadingOverlayWidget = nullptr;
+    bIsOverlayVisible = false;
+
+    // フェードアウト完了後に移動開始（Opening 特例は OnStageLoaded 内でハンドリング済）
+    if (CurrentLoadedLevel)
+    {
+        // 初回ステージの場合は Opening 再生へ
+        if (0 == CurrentPathIndex)
+        {
+            PlayOpeningSequence();
+        }
+        else
+        {
+            StartMovementForCurrentStage(CurrentLoadedLevel);
+        }
+    }
+}
+
+void AFlyingGameMode::OnMinDurationReached()
+{
+    bMinDurationSatisfied = true;
+    TryFinishTransitionAfterLoadAndMin();
+}
+
+void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
+{
+    // 次のステージのロード完了 かつ 最低表示時間達成 を満たしていればフェードアウト
+    if (bNextStageReady && bMinDurationSatisfied)
+    {
+        if (LoadingOverlayWidget && bIsOverlayVisible)
+        {
+            StartFade(/*From*/ 1.f, /*To*/ 0.f, FadeOutDurationSeconds, /*bIsFadeIn*/ false);
+        }
+        else
+        {
+            // オーバーレイがない場合でも進行を継続
+            if (CurrentLoadedLevel)
+            {
+                if (0 == CurrentPathIndex)
+                {
+                    PlayOpeningSequence();
+                }
+                else
+                {
+                    StartMovementForCurrentStage(CurrentLoadedLevel);
+                }
+            }
+        }
+    }
 }
 
 APathActor* AFlyingGameMode::FindUniquePathActorInStreamingLevel(ULevel* Level) const
