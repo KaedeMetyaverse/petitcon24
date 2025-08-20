@@ -15,8 +15,7 @@ AFlyingPawn::AFlyingPawn()
     Camera->SetRelativeRotation(FRotator(-10, 0, 0));
 
     MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComponent"));
-    MovementComponent->bAutoRegisterPhysicsVolumeUpdates = false;
-    MovementComponent->SetUpdatedComponent(SkeletalMesh);
+    MovementComponent->UpdatedComponent = SkeletalMesh;
 
     // コントローラーの回転に自動追従
     bUseControllerRotationYaw = true;
