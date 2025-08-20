@@ -21,6 +21,10 @@ public:
     // 指定したスプラインに沿った自動移動を開始する（C++専用）
     void StartMoveAlongSpline(TObjectPtr<USplineComponent> InSpline);
 
+    // フェードアウト中に最初のスプラインポイントへ向けて等速移動を始める
+    // FadeDurationSeconds の間だけ移動し、終了時にちょうど距離0のポイントへ到達させる
+    void PrepareMoveTowardsSplineStartDuringFade(TObjectPtr<USplineComponent> InSpline, float FadeDurationSeconds);
+
     virtual void Tick(float DeltaSeconds) override;
 
     virtual void OnPossess(APawn* InPawn) override;
@@ -50,6 +54,13 @@ private:
     TObjectPtr<USplineComponent> ActiveSpline;
     float CurrentSplineDistance = 0.f;
     bool bIsFollowingSpline = false;
+
+    // フェード中のプレ移動
+    bool bIsPreMovingTowardsSplineStart = false;
+    FVector PreMoveTargetLocation = FVector::ZeroVector;
+    FRotator PreMoveTargetRotation = FRotator::ZeroRotator;
+    float PreMoveRemainingSeconds = 0.f;
+    float PreMoveTotalSeconds = 0.f;
 
     // スプライン上の現在のピボット（ApplyPawnTransformAtDistanceAlongSpline で更新）
     FVector CurrentSplinePivotLocation = FVector::ZeroVector;

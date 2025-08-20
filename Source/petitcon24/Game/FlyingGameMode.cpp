@@ -445,6 +445,18 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
     {
         if (LoadingOverlayWidget && bIsOverlayVisible)
         {
+            // フェードアウト中に次ステージのスプライン先頭へ等速でプレ移動させる
+            if (CurrentLoadedLevel && CurrentPathIndex != 0)
+            {
+                if (APathActor* PathActor = FindUniquePathActorInStreamingLevel(CurrentLoadedLevel))
+                {
+                    USplineComponent* SplineComp = PathActor->GetSplineComponent();
+                    check(SplineComp != nullptr);
+
+                    check(CachedFlyingPlayerController != nullptr);
+                    CachedFlyingPlayerController->PrepareMoveTowardsSplineStartDuringFade(SplineComp, FadeOutDurationSeconds);
+                }
+            }
             StartFade(/*From*/ 1.f, /*To*/ 0.f, FadeOutDurationSeconds, /*bIsFadeIn*/ false);
         }
         else

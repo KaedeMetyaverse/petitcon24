@@ -48,15 +48,82 @@ void AFlyingPlayerController::StartMoveAlongSpline(TObjectPtr<USplineComponent> 
     check(InSpline != nullptr);
     ActiveSpline = InSpline;
     CurrentSplineDistance = 0.f;
+    // プレ移動フラグは終了
+    bIsPreMovingTowardsSplineStart = false;
     bIsFollowingSpline = true;
 
     // スタート地点へ即時移動（衝突無しでテレポート相当）
     ApplyPawnTransformAtDistanceAlongSpline(/*Distance*/ 0.f, /*bSweep*/ false);
 }
 
+void AFlyingPlayerController::PrepareMoveTowardsSplineStartDuringFade(TObjectPtr<USplineComponent> InSpline, float FadeDurationSeconds)
+{
+    check(InSpline != nullptr);
+
+    // ステート初期化
+    ActiveSpline = InSpline;
+    bIsFollowingSpline = false; // 本番追従はまだ開始しない
+    bIsPreMovingTowardsSplineStart = true;
+
+    // 目標（スプライン距離0）
+    const FVector TargetLocation = InSpline->GetLocationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
+    const FRotator TargetRotation = InSpline->GetRotationAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World);
+    PreMoveTargetLocation = TargetLocation;
+    PreMoveTargetRotation = TargetRotation;
+
+    // スプライン最初の角度から見た前方方向に対して Fade 分だけ手前へ戻った位置へワープ
+    // SplineMoveSpeed と FadeDurationSeconds で進める距離
+    const float MoveDistance = FMath::Max(0.f, SplineMoveSpeed * FMath::Max(0.f, FadeDurationSeconds));
+
+    APawn* ControlledPawn = GetPawn();
+    check(ControlledPawn != nullptr);
+
+    const FVector TargetForward = TargetRotation.Vector();
+    const FVector StartLocation = TargetLocation - TargetForward * MoveDistance;
+
+    // 角度はターゲットの回転を基準に
+    ControlledPawn->SetActorLocation(StartLocation, /*bSweep*/ false);
+    SetControlRotation(TargetRotation);
+    CurrentSplinePivotLocation = StartLocation;
+
+    // フェード残時間
+    PreMoveTotalSeconds = FMath::Max(0.f, FadeDurationSeconds);
+    PreMoveRemainingSeconds = PreMoveTotalSeconds;
+}
+
 void AFlyingPlayerController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+
+    // フェード中のプレ移動（最初のスプラインポイントへ向けて等速で直進）
+    if (bIsPreMovingTowardsSplineStart)
+    {
+        if (APawn* ControlledPawn = GetPawn())
+        {
+            const float Step = SplineMoveSpeed * DeltaSeconds;
+            FVector CurrentLocation = ControlledPawn->GetActorLocation();
+            FVector ToTarget = PreMoveTargetLocation - CurrentLocation;
+
+            const float DistanceToTarget = ToTarget.Length();
+            if (DistanceToTarget <= Step || PreMoveRemainingSeconds - DeltaSeconds <= 0.f)
+            {
+                // 目標に到達 or 残時間終了
+                ControlledPawn->SetActorLocation(PreMoveTargetLocation, /*bSweep*/ false);
+                SetControlRotation(PreMoveTargetRotation);
+                CurrentSplinePivotLocation = PreMoveTargetLocation;
+                bIsPreMovingTowardsSplineStart = false;
+            }
+            else
+            {
+                const FVector Dir = ToTarget.GetSafeNormal(UE_SMALL_NUMBER);
+                const FVector NewLocation = CurrentLocation + Dir * Step;
+                ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ false);
+                SetControlRotation(PreMoveTargetRotation);
+                CurrentSplinePivotLocation = NewLocation;
+                PreMoveRemainingSeconds -= DeltaSeconds;
+            }
+        }
+    }
 
     if (!bIsFollowingSpline)
     {
