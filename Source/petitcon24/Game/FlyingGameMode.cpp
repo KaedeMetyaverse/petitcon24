@@ -32,11 +32,118 @@ void AFlyingGameMode::BeginPlay()
     StartSequence();
 }
 
+void AFlyingGameMode::ShowInGameWidget()
+{
+    if (!InGameInfoWidgetClass)
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("InGameWidgetClassNotSet", "InGameInfoWidgetClass is not set in GameMode. HUD will not be shown."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("InGameInfoWidgetClass is not set in GameMode. HUD will not be shown."));
+        return;
+    }
+
+    if (!InGameInfoWidget)
+    {
+        UWorld* World = GetWorld();
+        check(World != nullptr);
+
+        InGameInfoWidget = CreateWidget<UUserWidget>(World, InGameInfoWidgetClass);
+        check(InGameInfoWidget != nullptr);
+
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+    }
+    else if (!InGameInfoWidget->IsInViewport())
+    {
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+    }
+}
+
+void AFlyingGameMode::HideInGameWidget()
+{
+    if (InGameInfoWidget)
+    {
+        InGameInfoWidget->RemoveFromParent();
+        InGameInfoWidget = nullptr;
+    }
+}
+
+void AFlyingGameMode::ShowHowToWidget()
+{
+    if (bHasShownHowToWidget)
+    {
+        return;
+    }
+
+    if (!InGameHowToWidgetClass)
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("HowToWidgetClassNotSet", "InGameHowToWidgetClass is not set in GameMode. How-To UI will not be shown."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("InGameHowToWidgetClass is not set in GameMode. How-To UI will not be shown."));
+        bHasShownHowToWidget = true; // 再試行しない
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    if (!InGameHowToWidget)
+    {
+        InGameHowToWidget = CreateWidget<UUserWidget>(World, InGameHowToWidgetClass);
+        check(InGameHowToWidget != nullptr);
+    }
+
+    if (!InGameHowToWidget->IsInViewport())
+    {
+        InGameHowToWidget->AddToViewport(/*ZOrder*/ 6000);
+    }
+
+    bHasShownHowToWidget = true;
+
+    const float Duration = FMath::Max(0.0f, HowToWidgetDurationSeconds);
+    if (Duration > 0.0f)
+    {
+        World->GetTimerManager().SetTimer(HowToWidgetTimerHandle, this, &AFlyingGameMode::HideHowToWidget, Duration, /*bLoop*/ false);
+    }
+    else
+    {
+        HideHowToWidget();
+    }
+}
+
+void AFlyingGameMode::HideHowToWidget()
+{
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        World->GetTimerManager().ClearTimer(HowToWidgetTimerHandle);
+    }
+
+    if (InGameHowToWidget)
+    {
+        InGameHowToWidget->RemoveFromParent();
+        InGameHowToWidget = nullptr;
+    }
+}
+
 void AFlyingGameMode::PlayOpeningSequence()
 {
     // 未設定なら即移動開始
     if (!CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode.")))
     {
+        // Opening が無い場合でもゲーム中 HUD を表示
+        ShowInGameWidget();
+        // Opening が無い場合も操作説明UIを表示
+        ShowHowToWidget();
         StartMovementForCurrentStage(CurrentLoadedLevel);
         return;
     }
@@ -91,6 +198,10 @@ void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
 
     // その後、移動開始（キャッシュを利用）
     check(CurrentLoadedLevel != nullptr);
+    // Opening 終了後にゲーム中 HUD を表示
+    ShowInGameWidget();
+    // 操作説明UI（初回のみ、指定秒数表示）
+    ShowHowToWidget();
     StartMovementForCurrentStage(CurrentLoadedLevel);
 }
 
@@ -194,6 +305,8 @@ void AFlyingGameMode::TryStartNextPath()
         check(PC != nullptr);
 
         PC->UnPossess();
+        // Ending 再生直前にゲーム中 HUD を非表示
+        HideInGameWidget();
         PlayEndingSequence();
 
         return;
@@ -336,13 +449,17 @@ void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
     if (!LoadingOverlayWidget)
     {
         LoadingOverlayWidget = CreateWidget<ULoadingOverlayBase>(World, LoadingOverlayClass);
-        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 10000);
+        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 1000);
     }
 
     // 映像再生とフェードイン
     LoadingOverlayWidget->SetRenderOpacity(0.f);
     LoadingOverlayWidget->PlayLoadingVideo();
     bIsOverlayVisible = true;
+
+    // フェードインが完了するまで最後の向きで前進を続ける
+    check(nullptr != CachedFlyingPlayerController);
+    CachedFlyingPlayerController->ContinueMoveForwardAfterSplineEndDuringFade(FadeInDurationSeconds);
     StartFade(/*From*/ 0.f, /*To*/ 1.f, FadeInDurationSeconds, /*bIsFadeIn*/ true);
 
     // 最低表示時間のタイマー
@@ -445,6 +562,18 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
     {
         if (LoadingOverlayWidget && bIsOverlayVisible)
         {
+            // フェードアウト中に次ステージのスプライン先頭へ等速でプレ移動させる
+            if (CurrentLoadedLevel && CurrentPathIndex != 0)
+            {
+                if (APathActor* PathActor = FindUniquePathActorInStreamingLevel(CurrentLoadedLevel))
+                {
+                    USplineComponent* SplineComp = PathActor->GetSplineComponent();
+                    check(SplineComp != nullptr);
+
+                    check(CachedFlyingPlayerController != nullptr);
+                    CachedFlyingPlayerController->PrepareMoveTowardsSplineStartDuringFade(SplineComp, FadeOutDurationSeconds);
+                }
+            }
             StartFade(/*From*/ 1.f, /*To*/ 0.f, FadeOutDurationSeconds, /*bIsFadeIn*/ false);
         }
         else
@@ -459,6 +588,10 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
                 else
                 {
                     StartMovementForCurrentStage(CurrentLoadedLevel);
+                    if (InGameInfoWidgetClass && !InGameInfoWidget)
+                    {
+                        ShowInGameWidget();
+                    }
                 }
             }
         }
