@@ -72,6 +72,69 @@ void AFlyingGameMode::HideInGameWidget()
     }
 }
 
+void AFlyingGameMode::ShowHowToWidget()
+{
+    if (bHasShownHowToWidget)
+    {
+        return;
+    }
+
+    if (!InGameHowToWidgetClass)
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("HowToWidgetClassNotSet", "InGameHowToWidgetClass is not set in GameMode. How-To UI will not be shown."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("InGameHowToWidgetClass is not set in GameMode. How-To UI will not be shown."));
+        bHasShownHowToWidget = true; // 再試行しない
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    if (!InGameHowToWidget)
+    {
+        InGameHowToWidget = CreateWidget<UUserWidget>(World, InGameHowToWidgetClass);
+        check(InGameHowToWidget != nullptr);
+    }
+
+    if (!InGameHowToWidget->IsInViewport())
+    {
+        InGameHowToWidget->AddToViewport(/*ZOrder*/ 6000);
+    }
+
+    bHasShownHowToWidget = true;
+
+    const float Duration = FMath::Max(0.0f, HowToWidgetDurationSeconds);
+    if (Duration > 0.0f)
+    {
+        World->GetTimerManager().SetTimer(HowToWidgetTimerHandle, this, &AFlyingGameMode::HideHowToWidget, Duration, /*bLoop*/ false);
+    }
+    else
+    {
+        HideHowToWidget();
+    }
+}
+
+void AFlyingGameMode::HideHowToWidget()
+{
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        World->GetTimerManager().ClearTimer(HowToWidgetTimerHandle);
+    }
+
+    if (InGameHowToWidget)
+    {
+        InGameHowToWidget->RemoveFromParent();
+        InGameHowToWidget = nullptr;
+    }
+}
+
 void AFlyingGameMode::PlayOpeningSequence()
 {
     // 未設定なら即移動開始
@@ -79,6 +142,8 @@ void AFlyingGameMode::PlayOpeningSequence()
     {
         // Opening が無い場合でもゲーム中 HUD を表示
         ShowInGameWidget();
+        // Opening が無い場合も操作説明UIを表示
+        ShowHowToWidget();
         StartMovementForCurrentStage(CurrentLoadedLevel);
         return;
     }
@@ -135,6 +200,8 @@ void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
     check(CurrentLoadedLevel != nullptr);
     // Opening 終了後にゲーム中 HUD を表示
     ShowInGameWidget();
+    // 操作説明UI（初回のみ、指定秒数表示）
+    ShowHowToWidget();
     StartMovementForCurrentStage(CurrentLoadedLevel);
 }
 

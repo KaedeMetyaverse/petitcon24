@@ -161,4 +161,21 @@ private:
 
     void ShowInGameWidget();
     void HideInGameWidget();
+
+    // ゲーム開始直後の操作説明UI（一定秒数のみ表示）
+    UPROPERTY(EditDefaultsOnly, Category = "InGameUI")
+    TSubclassOf<UUserWidget> InGameHowToWidgetClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "InGameUI")
+    float HowToWidgetDurationSeconds = 20.0f;
+
+    UPROPERTY()
+    TObjectPtr<UUserWidget> InGameHowToWidget;
+
+    bool bHasShownHowToWidget = false;
+
+    FTimerHandle HowToWidgetTimerHandle;
+
+    void ShowHowToWidget();
+    void HideHowToWidget();
 };
