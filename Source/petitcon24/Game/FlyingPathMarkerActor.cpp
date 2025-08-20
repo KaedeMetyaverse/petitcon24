@@ -1,6 +1,5 @@
 #include "FlyingPathMarkerActor.h"
 #include "TimerManager.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 
 AFlyingPathMarkerActor::AFlyingPathMarkerActor()
@@ -26,12 +25,6 @@ void AFlyingPathMarkerActor::NotifyActorBeginOverlap(AActor* OtherActor)
 
 	// BPへ通知（実装されていれば呼び出し）
 	OnOverlappedByPlayerPawn(OtherPawn);
-
-	// 設定されていれば SE を再生
-	if (OverlapSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, OverlapSound, GetActorLocation());
-	}
 
 	bDestroyScheduled = true;
 
