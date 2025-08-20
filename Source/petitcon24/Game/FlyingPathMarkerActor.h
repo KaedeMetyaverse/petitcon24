@@ -15,6 +15,10 @@ public:
 protected:
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
+	// プレイヤー操作中のPawnとOverlapした時にBPで処理したい場合に実装
+	UFUNCTION(BlueprintImplementableEvent, Category="Events")
+	void OnOverlappedByPlayerPawn(APawn* PlayerPawn);
+
 private:
 	// Overlap 時に再生する SE（エディタから設定）
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Audio", meta=(AllowPrivateAccess="true"))

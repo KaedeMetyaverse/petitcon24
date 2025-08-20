@@ -24,6 +24,9 @@ void AFlyingPathMarkerActor::NotifyActorBeginOverlap(AActor* OtherActor)
 		return;
 	}
 
+	// BPへ通知（実装されていれば呼び出し）
+	OnOverlappedByPlayerPawn(OtherPawn);
+
 	// 設定されていれば SE を再生
 	if (OverlapSound)
 	{
