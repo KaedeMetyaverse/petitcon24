@@ -12,6 +12,7 @@
 #include "LevelSequencePlayer.h"
 #include "TimerManager.h"
 #include "LoadingOverlayBase.h"
+#include "Blueprint/UserWidget.h"
 #include "FlyingGameMode.generated.h"
 
 UCLASS(abstract)
@@ -149,4 +150,15 @@ private:
     void OnFadeOutFinished();
     void OnMinDurationReached();
     void TryFinishTransitionAfterLoadAndMin();
+
+    // ゲーム中に表示する情報ウィジェット（エディタ設定可能）
+    UPROPERTY(EditDefaultsOnly, Category = "InGameUI")
+    TSubclassOf<UUserWidget> InGameInfoWidgetClass;
+
+    // 生成済みインスタンス（GC保護）
+    UPROPERTY()
+    TObjectPtr<UUserWidget> InGameInfoWidget;
+
+    void ShowInGameWidget();
+    void HideInGameWidget();
 };

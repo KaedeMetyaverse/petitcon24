@@ -32,11 +32,53 @@ void AFlyingGameMode::BeginPlay()
     StartSequence();
 }
 
+void AFlyingGameMode::ShowInGameWidget()
+{
+    if (!InGameInfoWidgetClass)
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("InGameWidgetClassNotSet", "InGameInfoWidgetClass is not set in GameMode. HUD will not be shown."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("InGameInfoWidgetClass is not set in GameMode. HUD will not be shown."));
+        return;
+    }
+
+    if (!InGameInfoWidget)
+    {
+        UWorld* World = GetWorld();
+        check(World != nullptr);
+
+        InGameInfoWidget = CreateWidget<UUserWidget>(World, InGameInfoWidgetClass);
+        check(InGameInfoWidget != nullptr);
+
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+    }
+    else if (!InGameInfoWidget->IsInViewport())
+    {
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+    }
+}
+
+void AFlyingGameMode::HideInGameWidget()
+{
+    if (InGameInfoWidget)
+    {
+        InGameInfoWidget->RemoveFromParent();
+        InGameInfoWidget = nullptr;
+    }
+}
+
 void AFlyingGameMode::PlayOpeningSequence()
 {
     // 未設定なら即移動開始
     if (!CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode.")))
     {
+        // Opening が無い場合でもゲーム中 HUD を表示
+        ShowInGameWidget();
         StartMovementForCurrentStage(CurrentLoadedLevel);
         return;
     }
@@ -91,6 +133,8 @@ void AFlyingGameMode::HandlePlayOpeningSequenceFinished()
 
     // その後、移動開始（キャッシュを利用）
     check(CurrentLoadedLevel != nullptr);
+    // Opening 終了後にゲーム中 HUD を表示
+    ShowInGameWidget();
     StartMovementForCurrentStage(CurrentLoadedLevel);
 }
 
@@ -194,6 +238,8 @@ void AFlyingGameMode::TryStartNextPath()
         check(PC != nullptr);
 
         PC->UnPossess();
+        // Ending 再生直前にゲーム中 HUD を非表示
+        HideInGameWidget();
         PlayEndingSequence();
 
         return;
@@ -336,7 +382,7 @@ void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
     if (!LoadingOverlayWidget)
     {
         LoadingOverlayWidget = CreateWidget<ULoadingOverlayBase>(World, LoadingOverlayClass);
-        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 10000);
+        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 1000);
     }
 
     // 映像再生とフェードイン
@@ -475,6 +521,10 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
                 else
                 {
                     StartMovementForCurrentStage(CurrentLoadedLevel);
+                    if (InGameInfoWidgetClass && !InGameInfoWidget)
+                    {
+                        ShowInGameWidget();
+                    }
                 }
             }
         }
