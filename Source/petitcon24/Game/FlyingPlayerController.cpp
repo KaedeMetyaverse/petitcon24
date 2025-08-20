@@ -307,6 +307,12 @@ void AFlyingPlayerController::HandleMoveInput(const FInputActionValue& Value)
 
 void AFlyingPlayerController::DoMoveControlledPawn(const float Right, const float Up)
 {
+    // スプライン追従中のみ、プレイヤー操作を有効化
+    if (!bIsFollowingSpline)
+    {
+        return;
+    }
+
     APawn* ControlledPawn = GetPawn();
     if (nullptr == ControlledPawn)
     {
