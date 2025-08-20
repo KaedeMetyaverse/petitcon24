@@ -1,4 +1,9 @@
 #include "FlyingPawn.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
+#include "Components/ArrowComponent.h"
 
 AFlyingPawn::AFlyingPawn()
 {

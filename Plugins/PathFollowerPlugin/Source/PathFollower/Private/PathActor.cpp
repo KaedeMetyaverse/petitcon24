@@ -23,8 +23,7 @@ void APathActor::BeginPlay()
 	Super::BeginPlay();
 	
 	// Clear any editor-spawned markers and spawn runtime markers
-	ClearPathMarkers();
-	SpawnPathMarkersAlongSpline();
+	RebuildPathMarkers();
 }
 
 void APathActor::OnConstruction(const FTransform& Transform)
@@ -32,8 +31,7 @@ void APathActor::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	
 	// Clear existing markers and spawn new ones
-	ClearPathMarkers();
-	SpawnPathMarkersAlongSpline();
+	RebuildPathMarkers();
 }
 
 void APathActor::ClearPathMarkers()
@@ -68,13 +66,13 @@ void APathActor::SpawnPathMarkersAlongSpline()
 	check(PathSpline != nullptr);
 	
 	// Get the total length of the spline
-	const auto SplineLength = PathSpline->GetSplineLength();
+	const float SplineLength = PathSpline->GetSplineLength();
 
 	UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Starting to spawn path markers. SplineLength=%.2f, PathMarkerDistance=%.2f, MarkerClass=%s"), 
 		*GetName(), SplineLength, PathMarkerDistance, *PathMarkerClass->GetName());
 	
 	// Calculate number of path markers to spawn
-	int32 NumMarkersToSpawn = (FMath::CeilToInt(SplineLength / PathMarkerDistance) - 1) + 2;
+	const int32 NumMarkersToSpawn = (FMath::CeilToInt(SplineLength / PathMarkerDistance) - 1) + 2;
 	
 	UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Calculated %d path markers to spawn along spline"), *GetName(), NumMarkersToSpawn);
 
@@ -121,4 +119,10 @@ void APathActor::SpawnPathMarkersAlongSpline()
 		UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Successfully created path marker component %d at distance %.2f, location %s"), 
 			*GetName(), i, Distance, *SpawnLocation.ToString());
 	}
+}
+
+void APathActor::RebuildPathMarkers()
+{
+    ClearPathMarkers();
+    SpawnPathMarkersAlongSpline();
 }

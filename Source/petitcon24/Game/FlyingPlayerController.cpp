@@ -5,6 +5,8 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "InputMappingContext.h"
+#include "InputAction.h"
 #include "InputActionValue.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"

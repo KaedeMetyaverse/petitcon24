@@ -29,7 +29,7 @@ void AFlyingPathMarkerActor::NotifyActorBeginOverlap(AActor* OtherActor)
 	bDestroyScheduled = true;
 
 	FTimerDelegate Delegate;
-	Delegate.BindUFunction(this, FName("DestroySelf"));
+	Delegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(AFlyingPathMarkerActor, DestroySelf));
 	GetWorldTimerManager().SetTimerForNextTick(Delegate);
 }
 

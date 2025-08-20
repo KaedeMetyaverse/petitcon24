@@ -2,8 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/SplineComponent.h"
-#include "Components/ChildActorComponent.h"
+class USplineComponent;
+class UChildActorComponent;
 #include "PathActor.generated.h"
 
 UCLASS()
@@ -27,11 +27,12 @@ protected:
     TSubclassOf<AActor> PathMarkerClass = nullptr;  // Class of actor to spawn as path markers
 
 private:
-	// Function to spawn path markers along the spline
-	void SpawnPathMarkersAlongSpline();
-	
-	// Function to clear existing path markers
-	void ClearPathMarkers();
+    void RebuildPathMarkers();
+    // Function to spawn path markers along the spline
+    void SpawnPathMarkersAlongSpline();
+    
+    // Function to clear existing path markers
+    void ClearPathMarkers();
 	
 private:
 	UPROPERTY(VisibleAnywhere)

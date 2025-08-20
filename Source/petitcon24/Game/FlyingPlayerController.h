@@ -2,9 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Components/SplineComponent.h"
-#include "InputMappingContext.h"
-#include "InputAction.h"
+class USplineComponent;
+class UInputMappingContext;
+class UInputAction;
+struct FInputActionValue;
 #include "FlyingPlayerController.generated.h"
 
 // C++専用: スプライン移動完了を通知するデリゲート
