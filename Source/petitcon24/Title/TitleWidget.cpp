@@ -22,7 +22,8 @@ void UTitleWidget::HandleStartClicked()
 	const FString LongPackageName = LevelToOpen.ToSoftObjectPath().GetLongPackageName();
 	if (!LongPackageName.IsEmpty())
 	{
-		UGameplayStatics::OpenLevel(this, FName(*LongPackageName));
+		const FName LevelName(*LongPackageName);
+		UGameplayStatics::OpenLevel(this, LevelName);
 	}
 	else
 	{
