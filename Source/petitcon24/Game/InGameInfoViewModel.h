@@ -28,7 +28,7 @@ public:
 
 public:
     // C++専用セッター（BPからは取得のみ）
-    void SetStageCount(const int32 InStageCount)
+    void SetStageCount(int32 InStageCount)
     {
         if (StageCount != InStageCount)
         {
@@ -37,7 +37,7 @@ public:
         }
     }
 
-    void SetCurrentStageNumber(const int32 InCurrentNumber)
+    void SetCurrentStageNumber(int32 InCurrentNumber)
     {
         if (CurrentStageNumber != InCurrentNumber)
         {
@@ -46,7 +46,7 @@ public:
         }
     }
 
-    void SetTotalSplineLength(const double InTotal)
+    void SetTotalSplineLength(double InTotal)
     {
         if (TotalSplineLength != InTotal)
         {
@@ -55,7 +55,7 @@ public:
         }
     }
 
-    void SetTraveledSplineLength(const double InTraveled)
+    void SetTraveledSplineLength(double InTraveled)
     {
         if (TraveledSplineLength != InTraveled)
         {

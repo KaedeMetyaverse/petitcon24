@@ -85,7 +85,7 @@ private:
     void HandlePlayEndingSequenceFinished();
 
     // Persistent Level 内でタグ一致の Pawn を探す
-    APawn* FindPawnByTagInPersistentLevel(const FName Tag) const;
+    APawn* FindPawnByTagInPersistentLevel(FName Tag) const;
 
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;
