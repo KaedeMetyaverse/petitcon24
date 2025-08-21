@@ -701,21 +701,21 @@ APawn* AFlyingGameMode::FindPawnByTagInPersistentLevel(const FName Tag) const
     ULevel* Persistent = World->PersistentLevel;
     check(Persistent != nullptr);
 
-    for (AActor* Actor : Persistent->Actors)
+    for (TActorIterator<APawn> It(World); It; ++It)
     {
-	    if (nullptr == Actor)
+        APawn* Pawn = *It;
+        if (!Pawn)
         {
             continue;
-	    }
+        }
 
-        if (Actor->ActorHasTag(Tag))
+        if (Pawn->GetLevel() != Persistent)
         {
-            APawn* Pawn = Cast<APawn>(Actor);
-            if (nullptr == Pawn) {
-                UE_LOG(LogFlyingGameMode, Log, TEXT("Actor: %s has tag: %s, but is not a Pawn"), *Actor->GetName(), *Tag.ToString());
-                continue;
-            }
+            continue;
+        }
 
+        if (Pawn->ActorHasTag(Tag))
+        {
             return Pawn;
         }
     }

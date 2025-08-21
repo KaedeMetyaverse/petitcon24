@@ -64,6 +64,11 @@ void ATitlePlayerController::BeginPlay()
     }
 
     UTitleWidget* Widget = CreateWidget<UTitleWidget>(this, WidgetClass);
+    if (!Widget)
+    {
+        UE_LOG(LogTitlePlayerController, Error, TEXT("Failed to create TitleWidget instance."));
+        return;
+    }
     SpawnedTitleWidget = Widget;
     Widget->AddToViewport(/*ZOrder*/ TitleWidgetZOrder);
 
