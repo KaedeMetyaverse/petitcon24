@@ -28,6 +28,16 @@ public:
     virtual void BeginPlay() override;
 
 private:
+    // UI Z-order and timing constants
+    static constexpr int32 InGameInfoZOrder = 5000;
+    static constexpr int32 HowToZOrder = 6000;
+    static constexpr int32 LoadingOverlayZOrder = 1000;
+    static constexpr float FadeTickSeconds = 0.01f;
+
+    // Latent action UUIDs
+    static constexpr int32 UUID_OnStageUnloaded = 1001;
+    static constexpr int32 UUID_OnStageLoaded = 1002;
+
     // オープニング用レベルシーケンスを再生する
     void PlayOpeningSequence();
 
@@ -75,7 +85,7 @@ private:
     void HandlePlayEndingSequenceFinished();
 
     // Persistent Level 内でタグ一致の Pawn を探す
-    APawn* FindPawnByTagInPersistentLevel(FName Tag) const;
+    APawn* FindPawnByTagInPersistentLevel(const FName Tag) const;
 
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;

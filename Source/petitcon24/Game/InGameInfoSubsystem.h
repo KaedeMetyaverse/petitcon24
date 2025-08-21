@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/LocalPlayerSubsystem.h"
-#include "InGameInfoViewModel.h"
+class UInGameInfoViewModel;
 #include "InGameInfoSubsystem.generated.h"
 
 UCLASS()

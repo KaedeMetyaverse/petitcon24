@@ -1,4 +1,5 @@
 #include "InGameInfoSubsystem.h"
+#include "InGameInfoViewModel.h"
 
 void UInGameInfoSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
