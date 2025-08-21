@@ -13,6 +13,11 @@
 DEFINE_LOG_CATEGORY_STATIC(LogTitlePlayerController, Log, All);
 #define LOCTEXT_NAMESPACE "TitlePlayerController"
 
+namespace
+{
+    constexpr int32 TitleWidgetZOrder = 100;
+}
+
 ATitlePlayerController::ATitlePlayerController()
 {
 }
@@ -33,7 +38,7 @@ void ATitlePlayerController::BeginPlay()
     check(GM != nullptr);
 
     ATitleGameMode* TitleGM = Cast<ATitleGameMode>(GM);
-    if (nullptr == TitleGM) {
+    if (!TitleGM) {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
         {
@@ -46,7 +51,7 @@ void ATitlePlayerController::BeginPlay()
     }
 
     WidgetClass = TitleGM->TitleWidgetClass;
-    if (nullptr == WidgetClass) {
+    if (!WidgetClass) {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
         {
@@ -60,7 +65,7 @@ void ATitlePlayerController::BeginPlay()
 
     UTitleWidget* Widget = CreateWidget<UTitleWidget>(this, WidgetClass);
     SpawnedTitleWidget = Widget;
-    Widget->AddToViewport(/*ZOrder*/ 100);
+    Widget->AddToViewport(/*ZOrder*/ TitleWidgetZOrder);
 
     // UI 操作用の入力モード
     FInputModeUIOnly InputMode;
