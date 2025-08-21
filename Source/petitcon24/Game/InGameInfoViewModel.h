@@ -28,39 +28,11 @@ public:
 
 public:
     // C++専用セッター（BPからは取得のみ）
-    void SetStageCount(int32 InStageCount)
-    {
-        if (StageCount != InStageCount)
-        {
-            StageCount = InStageCount;
-            UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(StageCount);
-        }
-    }
+    void SetStageCount(int32 InStageCount);
 
-    void SetCurrentStageNumber(int32 InCurrentNumber)
-    {
-        if (CurrentStageNumber != InCurrentNumber)
-        {
-            CurrentStageNumber = InCurrentNumber;
-            UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(CurrentStageNumber);
-        }
-    }
+    void SetCurrentStageNumber(int32 InCurrentNumber);
 
-    void SetTotalSplineLength(double InTotal)
-    {
-        if (TotalSplineLength != InTotal)
-        {
-            TotalSplineLength = InTotal;
-            UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TotalSplineLength);
-        }
-    }
+    void SetTotalSplineLength(double InTotal);
 
-    void SetTraveledSplineLength(double InTraveled)
-    {
-        if (TraveledSplineLength != InTraveled)
-        {
-            TraveledSplineLength = InTraveled;
-            UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TraveledSplineLength);
-        }
-    }
+    void SetTraveledSplineLength(double InTraveled);
 };
