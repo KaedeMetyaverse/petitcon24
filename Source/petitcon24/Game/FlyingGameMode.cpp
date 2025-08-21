@@ -14,6 +14,9 @@
 #include "Engine/Level.h"
 #include "Kismet/GameplayStatics.h"
 #include "InGameInfoSubsystem.h"
+#include "PathActor.h"
+#include "LoadingOverlayBase.h"
+#include "Blueprint/UserWidget.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #endif

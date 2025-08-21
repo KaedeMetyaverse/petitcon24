@@ -2,20 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "GameFramework/Actor.h"
-#include "FlyingPlayerController.h"
-#include "PathActor.h"
 #include "UObject/SoftObjectPtr.h"
-#include "Engine/Level.h"
-#include "LevelSequence.h"
-#include "LevelSequenceActor.h"
-#include "LevelSequencePlayer.h"
-#include "TimerManager.h"
-#include "LoadingOverlayBase.h"
-#include "Blueprint/UserWidget.h"
 #include "InGameInfoViewModel.h"
-#include "InGameInfoSubsystem.h"
+#include "TimerManager.h"
 #include "FlyingGameMode.generated.h"
+
+class AFlyingPlayerController;
+class APathActor;
+class ULevelSequence;
+class ULevelSequenceActor;
+class ULevelSequencePlayer;
+class ULoadingOverlayBase;
+class UUserWidget;
+class UInGameInfoSubsystem;
+class ULevel;
 
 UCLASS(abstract)
 class PETITCON24_API AFlyingGameMode : public AGameModeBase

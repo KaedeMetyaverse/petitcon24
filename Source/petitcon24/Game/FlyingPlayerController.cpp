@@ -22,6 +22,11 @@ AFlyingPlayerController::AFlyingPlayerController()
     PrimaryActorTick.bCanEverTick = true;
 }
 
+float AFlyingPlayerController::ComputeMovementStep(const float DeltaSeconds) const
+{
+    return SplineMoveSpeed * DeltaSeconds;
+}
+
 USceneComponent* AFlyingPlayerController::GetPawnUpdatedComponent() const
 {
     if (const APawn* ControlledPawn = GetPawn())
@@ -133,7 +138,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         if (APawn* ControlledPawn = GetPawn())
         {
-            const float Step = SplineMoveSpeed * DeltaSeconds;
+            const float Step = ComputeMovementStep(DeltaSeconds);
             FVector CurrentLocation = ControlledPawn->GetActorLocation();
             FVector ToTarget = PreMoveTargetLocation - CurrentLocation;
 
@@ -163,7 +168,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         if (APawn* ControlledPawn = GetPawn())
         {
-            const float Step = SplineMoveSpeed * DeltaSeconds;
+            const float Step = ComputeMovementStep(DeltaSeconds);
             const FVector CurrentLocation = ControlledPawn->GetActorLocation();
             const FVector NewLocation = CurrentLocation + PostMoveForwardDirection * Step;
             ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ false);
@@ -187,7 +192,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     check(Spline != nullptr);
 
     // 進行距離を更新
-    CurrentSplineDistance += SplineMoveSpeed * DeltaSeconds;
+    CurrentSplineDistance += ComputeMovementStep(DeltaSeconds);
 
     const float SplineLength = Spline->GetSplineLength();
     if (CurrentSplineDistance >= SplineLength)

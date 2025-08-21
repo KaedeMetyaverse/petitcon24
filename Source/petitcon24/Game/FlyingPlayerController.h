@@ -92,4 +92,7 @@ private:
 
     // 現在所持している Pawn の UpdatedComponent を取得（null 安全）
     class USceneComponent* GetPawnUpdatedComponent() const;
+
+    // DeltaSeconds に応じた移動ステップ量を算出
+    float ComputeMovementStep(float DeltaSeconds) const;
 };
