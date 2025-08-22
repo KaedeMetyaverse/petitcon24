@@ -17,6 +17,7 @@
 #include "PathActor.h"
 #include "LoadingOverlayBase.h"
 #include "Blueprint/UserWidget.h"
+#include "LevelSequencePlayer.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #endif

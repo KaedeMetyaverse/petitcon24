@@ -10,7 +10,7 @@
 class AFlyingPlayerController;
 class APathActor;
 class ULevelSequence;
-class ULevelSequenceActor;
+class ALevelSequenceActor;
 class ULevelSequencePlayer;
 class ULoadingOverlayBase;
 class UUserWidget;
