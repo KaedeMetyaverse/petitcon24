@@ -3,11 +3,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "UObject/ObjectPtr.h"
-#include "Components/SceneComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/ArrowComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
-#include "Camera/CameraComponent.h"
+class USceneComponent;
+class USkeletalMeshComponent;
+class UCameraComponent;
+class UFloatingPawnMovement;
+class UArrowComponent;
 #include "FlyingPawn.generated.h"
 
 UCLASS(abstract)

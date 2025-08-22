@@ -14,6 +14,10 @@
 #include "Engine/Level.h"
 #include "Kismet/GameplayStatics.h"
 #include "InGameInfoSubsystem.h"
+#include "PathActor.h"
+#include "LoadingOverlayBase.h"
+#include "Blueprint/UserWidget.h"
+#include "LevelSequencePlayer.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #endif
@@ -71,11 +75,11 @@ void AFlyingGameMode::ShowInGameWidget()
         InGameInfoWidget = CreateWidget<UUserWidget>(World, InGameInfoWidgetClass);
         check(InGameInfoWidget != nullptr);
 
-        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ InGameInfoZOrder);
     }
     else if (!InGameInfoWidget->IsInViewport())
     {
-        InGameInfoWidget->AddToViewport(/*ZOrder*/ 5000);
+        InGameInfoWidget->AddToViewport(/*ZOrder*/ InGameInfoZOrder);
     }
 }
 
@@ -120,7 +124,7 @@ void AFlyingGameMode::ShowHowToWidget()
 
     if (!InGameHowToWidget->IsInViewport())
     {
-        InGameHowToWidget->AddToViewport(/*ZOrder*/ 6000);
+        InGameHowToWidget->AddToViewport(/*ZOrder*/ HowToZOrder);
     }
 
     bHasShownHowToWidget = true;
@@ -367,8 +371,8 @@ void AFlyingGameMode::ProceedUnloadPreviousStage()
 
     FLatentActionInfo LatentInfo;
     LatentInfo.CallbackTarget = this;
-    LatentInfo.ExecutionFunction = FName("OnStageUnloaded");
-    LatentInfo.UUID = 1001;
+    LatentInfo.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnStageUnloaded);
+    LatentInfo.UUID = UUID_OnStageUnloaded;
     LatentInfo.Linkage = 0;
     UGameplayStatics::UnloadStreamLevelBySoftObjectPtr(this, Stages[PreviousIndex], LatentInfo, false /* non-blocking */);
 }
@@ -382,8 +386,8 @@ void AFlyingGameMode::ProceedLoadCurrentStage()
 {
     FLatentActionInfo LatentInfo;
     LatentInfo.CallbackTarget = this;
-    LatentInfo.ExecutionFunction = FName("OnStageLoaded");
-    LatentInfo.UUID = 1002;
+    LatentInfo.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnStageLoaded);
+    LatentInfo.UUID = UUID_OnStageLoaded;
     LatentInfo.Linkage = 0;
     UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, Stages[CurrentPathIndex], true /* visible */, false /* non-blocking */, LatentInfo);
 }
@@ -394,7 +398,7 @@ void AFlyingGameMode::OnStageLoaded()
     check(!CurrLongPackageName.IsEmpty());
 
     ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*CurrLongPackageName));
-    if (nullptr == Streaming || !Streaming->IsLevelLoaded())
+    if (!Streaming || !Streaming->IsLevelLoaded())
     {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
@@ -474,7 +478,7 @@ void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
     if (!LoadingOverlayWidget)
     {
         LoadingOverlayWidget = CreateWidget<ULoadingOverlayBase>(World, LoadingOverlayClass);
-        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ 1000);
+        LoadingOverlayWidget->AddToViewport(/*ZOrder*/ LoadingOverlayZOrder);
     }
 
     // 映像再生とフェードイン
@@ -512,7 +516,7 @@ void AFlyingGameMode::StartFade(float FromOpacity, float ToOpacity, float Durati
     FadeTotalDuration = FMath::Max(0.01f, Duration);
     FadeElapsedSeconds = 0.f;
 
-    World->GetTimerManager().SetTimer(FadeTimerHandle, this, &AFlyingGameMode::TickFade, 0.01f, /*bLoop*/ true);
+    World->GetTimerManager().SetTimer(FadeTimerHandle, this, &AFlyingGameMode::TickFade, FadeTickSeconds, /*bLoop*/ true);
 }
 
 void AFlyingGameMode::TickFade()
@@ -521,7 +525,7 @@ void AFlyingGameMode::TickFade()
     check(World != nullptr);
     check(LoadingOverlayWidget != nullptr);
 
-    FadeElapsedSeconds += 0.01f;
+    FadeElapsedSeconds += FadeTickSeconds;
     const float Alpha = FMath::Clamp(FadeElapsedSeconds / FadeTotalDuration, 0.f, 1.f);
     const float Opacity = FMath::Lerp(FadeFromOpacity, FadeToOpacity, Alpha);
     LoadingOverlayWidget->SetRenderOpacity(Opacity);
@@ -640,7 +644,7 @@ APathActor* AFlyingGameMode::FindUniquePathActorInStreamingLevel(ULevel* Level) 
     {
         APathActor* PathActor = Cast<APathActor>(Actor);
         // skip if not APathActor
-        if (nullptr == PathActor)
+        if (!PathActor)
         {
             continue;
         }
@@ -690,7 +694,7 @@ APathActor* AFlyingGameMode::FindUniquePathActorInStreamingLevel(ULevel* Level) 
     return FirstFound;
 }
 
-APawn* AFlyingGameMode::FindPawnByTagInPersistentLevel(FName Tag) const
+APawn* AFlyingGameMode::FindPawnByTagInPersistentLevel(const FName Tag) const
 {
     UWorld* World = GetWorld();
     check(World != nullptr);

@@ -5,6 +5,8 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "InputMappingContext.h"
+#include "InputAction.h"
 #include "InputActionValue.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
@@ -18,6 +20,23 @@ DEFINE_LOG_CATEGORY_STATIC(LogFlyingPlayerController, Log, All);
 AFlyingPlayerController::AFlyingPlayerController()
 {
     PrimaryActorTick.bCanEverTick = true;
+}
+
+float AFlyingPlayerController::ComputeMovementStep(const float DeltaSeconds) const
+{
+    return SplineMoveSpeed * DeltaSeconds;
+}
+
+USceneComponent* AFlyingPlayerController::GetPawnUpdatedComponent() const
+{
+    if (const APawn* ControlledPawn = GetPawn())
+    {
+        if (const UPawnMovementComponent* MoveComp = ControlledPawn->GetMovementComponent())
+        {
+            return MoveComp->UpdatedComponent;
+        }
+    }
+    return nullptr;
 }
 
 void AFlyingPlayerController::ApplyPawnTransformAtDistanceAlongSpline(const float Distance, const bool bSweep)
@@ -89,8 +108,9 @@ void AFlyingPlayerController::PrepareMoveTowardsSplineStartDuringFade(TObjectPtr
     CurrentSplinePivotLocation = StartLocation;
 
     // フェード残時間
-    PreMoveTotalSeconds = FMath::Max(0.f, FadeDurationSeconds);
-    PreMoveRemainingSeconds = PreMoveTotalSeconds;
+    const float ClampedFade = FMath::Max(0.f, FadeDurationSeconds);
+    PreMoveTotalSeconds = ClampedFade;
+    PreMoveRemainingSeconds = ClampedFade;
 }
 
 void AFlyingPlayerController::ContinueMoveForwardAfterSplineEndDuringFade(float FadeDurationSeconds)
@@ -103,9 +123,10 @@ void AFlyingPlayerController::ContinueMoveForwardAfterSplineEndDuringFade(float 
     PostMoveForwardDirection = EndRotation.Vector();
 
     // 残時間
-    PostMoveTotalSeconds = FMath::Max(0.f, FadeDurationSeconds);
-    PostMoveRemainingSeconds = PostMoveTotalSeconds;
-    bIsPostMovingForwardAfterSplineEnd = (PostMoveTotalSeconds > 0.f);
+    const float ClampedFade = FMath::Max(0.f, FadeDurationSeconds);
+    PostMoveTotalSeconds = ClampedFade;
+    PostMoveRemainingSeconds = ClampedFade;
+    bIsPostMovingForwardAfterSplineEnd = (ClampedFade > 0.f);
 }
 
 void AFlyingPlayerController::Tick(float DeltaSeconds)
@@ -117,7 +138,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         if (APawn* ControlledPawn = GetPawn())
         {
-            const float Step = SplineMoveSpeed * DeltaSeconds;
+            const float Step = ComputeMovementStep(DeltaSeconds);
             FVector CurrentLocation = ControlledPawn->GetActorLocation();
             FVector ToTarget = PreMoveTargetLocation - CurrentLocation;
 
@@ -147,7 +168,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         if (APawn* ControlledPawn = GetPawn())
         {
-            const float Step = SplineMoveSpeed * DeltaSeconds;
+            const float Step = ComputeMovementStep(DeltaSeconds);
             const FVector CurrentLocation = ControlledPawn->GetActorLocation();
             const FVector NewLocation = CurrentLocation + PostMoveForwardDirection * Step;
             ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ false);
@@ -171,7 +192,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     check(Spline != nullptr);
 
     // 進行距離を更新
-    CurrentSplineDistance += SplineMoveSpeed * DeltaSeconds;
+    CurrentSplineDistance += ComputeMovementStep(DeltaSeconds);
 
     const float SplineLength = Spline->GetSplineLength();
     if (CurrentSplineDistance >= SplineLength)
@@ -233,16 +254,10 @@ void AFlyingPlayerController::OnPossess(APawn* InPawn)
 
     UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
 
-    if (APawn* ControlledPawn = GetPawn())
+    if (USceneComponent* UpdatedComp = GetPawnUpdatedComponent())
     {
-        if (UPawnMovementComponent* MoveComp = ControlledPawn->GetMovementComponent())
-        {
-            if (USceneComponent* UpdatedComp = MoveComp->UpdatedComponent)
-            {
-                // Pawn のルート（RootComponent）に対する UpdatedComponent のローカル位置
-                UpdatedComponentInitialLocalOffset = UpdatedComp->GetRelativeLocation();
-            }
-        }
+        // Pawn のルート（RootComponent）に対する UpdatedComponent のローカル位置
+        UpdatedComponentInitialLocalOffset = UpdatedComp->GetRelativeLocation();
     }
 }
 

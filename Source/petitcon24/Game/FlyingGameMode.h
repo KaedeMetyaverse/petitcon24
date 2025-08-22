@@ -2,20 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "GameFramework/Actor.h"
-#include "FlyingPlayerController.h"
-#include "PathActor.h"
 #include "UObject/SoftObjectPtr.h"
-#include "Engine/Level.h"
-#include "LevelSequence.h"
-#include "LevelSequenceActor.h"
-#include "LevelSequencePlayer.h"
-#include "TimerManager.h"
-#include "LoadingOverlayBase.h"
-#include "Blueprint/UserWidget.h"
 #include "InGameInfoViewModel.h"
-#include "InGameInfoSubsystem.h"
+#include "TimerManager.h"
 #include "FlyingGameMode.generated.h"
+
+class AFlyingPlayerController;
+class APathActor;
+class ULevelSequence;
+class ALevelSequenceActor;
+class ULevelSequencePlayer;
+class ULoadingOverlayBase;
+class UUserWidget;
+class UInGameInfoSubsystem;
+class ULevel;
 
 UCLASS(abstract)
 class PETITCON24_API AFlyingGameMode : public AGameModeBase
@@ -28,6 +28,16 @@ public:
     virtual void BeginPlay() override;
 
 private:
+    // UI Z-order and timing constants
+    static constexpr int32 InGameInfoZOrder = 5000;
+    static constexpr int32 HowToZOrder = 6000;
+    static constexpr int32 LoadingOverlayZOrder = 1000;
+    static constexpr float FadeTickSeconds = 0.01f;
+
+    // Latent action UUIDs
+    static constexpr int32 UUID_OnStageUnloaded = 1001;
+    static constexpr int32 UUID_OnStageLoaded = 1002;
+
     // オープニング用レベルシーケンスを再生する
     void PlayOpeningSequence();
 
