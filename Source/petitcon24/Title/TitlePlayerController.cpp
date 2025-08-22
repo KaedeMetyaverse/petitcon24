@@ -63,14 +63,15 @@ void ATitlePlayerController::BeginPlay()
         return;
     }
 
-    UTitleWidget* Widget = CreateWidget<UTitleWidget>(this, WidgetClass);
-    SpawnedTitleWidget = Widget;
-    Widget->AddToViewport(/*ZOrder*/ TitleWidgetZOrder);
+    UTitleWidget* TitleWidget = CreateWidget<UTitleWidget>(this, WidgetClass);
+    check(TitleWidget);
+    SpawnedTitleWidget = TitleWidget;
+    TitleWidget->AddToViewport(/*ZOrder*/ TitleWidgetZOrder);
 
     // UI 操作用の入力モード
     FInputModeUIOnly InputMode;
     InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-    InputMode.SetWidgetToFocus(Widget->TakeWidget());
+    InputMode.SetWidgetToFocus(TitleWidget->TakeWidget());
     SetInputMode(InputMode);
     bShowMouseCursor = true;
 }
