@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/LocalPlayerSubsystem.h"
-#include "InGameInfoViewModel.h"
+class UInGameInfoViewModel;
 #include "InGameInfoSubsystem.generated.h"
 
 UCLASS()
@@ -18,8 +18,8 @@ public:
     UInGameInfoViewModel* GetInGameInfoViewModel() const { return ViewModel; }
 
     // C++ からの更新ヘルパ（必要に応じて使用）
-    void SetStageCount(const int32 InStageCount);
-    void SetCurrentStageNumber(const int32 InCurrentNumber);
+    void SetStageCount(int32 InStageCount);
+    void SetCurrentStageNumber(int32 InCurrentNumber);
 
 private:
     UPROPERTY()

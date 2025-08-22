@@ -2,9 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Components/SplineComponent.h"
-#include "InputMappingContext.h"
-#include "InputAction.h"
+class USplineComponent;
+class UInputMappingContext;
+class UInputAction;
+struct FInputActionValue;
 #include "FlyingPlayerController.generated.h"
 
 // C++専用: スプライン移動完了を通知するデリゲート
@@ -88,4 +89,10 @@ private:
 
     // 入力処理の中身（Pawn に AddMovementInput する）
     void DoMoveControlledPawn(float Right, float Up);
+
+    // 現在所持している Pawn の UpdatedComponent を取得（null 安全）
+    class USceneComponent* GetPawnUpdatedComponent() const;
+
+    // DeltaSeconds に応じた移動ステップ量を算出
+    float ComputeMovementStep(float DeltaSeconds) const;
 };

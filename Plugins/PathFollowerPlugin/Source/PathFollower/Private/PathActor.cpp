@@ -23,8 +23,7 @@ void APathActor::BeginPlay()
 	Super::BeginPlay();
 	
 	// Clear any editor-spawned markers and spawn runtime markers
-	ClearPathMarkers();
-	SpawnPathMarkersAlongSpline();
+	RebuildPathMarkers();
 }
 
 void APathActor::OnConstruction(const FTransform& Transform)
@@ -32,8 +31,7 @@ void APathActor::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	
 	// Clear existing markers and spawn new ones
-	ClearPathMarkers();
-	SpawnPathMarkersAlongSpline();
+	RebuildPathMarkers();
 }
 
 void APathActor::ClearPathMarkers()
@@ -68,15 +66,18 @@ void APathActor::SpawnPathMarkersAlongSpline()
 	check(PathSpline != nullptr);
 	
 	// Get the total length of the spline
-	const auto SplineLength = PathSpline->GetSplineLength();
+	const float SplineLength = PathSpline->GetSplineLength();
 
 	UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Starting to spawn path markers. SplineLength=%.2f, PathMarkerDistance=%.2f, MarkerClass=%s"), 
 		*GetName(), SplineLength, PathMarkerDistance, *PathMarkerClass->GetName());
 	
 	// Calculate number of path markers to spawn
-	int32 NumMarkersToSpawn = (FMath::CeilToInt(SplineLength / PathMarkerDistance) - 1) + 2;
+	const int32 NumMarkersToSpawn = (FMath::CeilToInt(SplineLength / PathMarkerDistance) - 1) + 2;
 	
 	UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Calculated %d path markers to spawn along spline"), *GetName(), NumMarkersToSpawn);
+
+	// Preallocate array to avoid reallocations
+	SpawnedPathMarkerComponents.Reserve(NumMarkersToSpawn);
 
 	// Create path marker components at intervals along the spline
 	for (int32 i = 0; i < NumMarkersToSpawn; ++i)
@@ -89,7 +90,7 @@ void APathActor::SpawnPathMarkersAlongSpline()
 		const FRotator SpawnRotation = PathSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 
 		// Create a new child actor component for the path marker
-		FString ComponentName = FString::Printf(TEXT("PathMarker_%d"), i);
+		const FString ComponentName = FString::Printf(TEXT("PathMarker_%d"), i);
 		TObjectPtr<UChildActorComponent> MarkerComponent = NewObject<UChildActorComponent>(this, *ComponentName, RF_Transient | RF_DuplicateTransient);
 
 #if WITH_EDITOR
@@ -121,4 +122,10 @@ void APathActor::SpawnPathMarkersAlongSpline()
 		UE_LOG(LogPathActor, Verbose, TEXT("PathActor '%s': Successfully created path marker component %d at distance %.2f, location %s"), 
 			*GetName(), i, Distance, *SpawnLocation.ToString());
 	}
+}
+
+void APathActor::RebuildPathMarkers()
+{
+    ClearPathMarkers();
+    SpawnPathMarkersAlongSpline();
 }
