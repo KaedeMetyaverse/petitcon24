@@ -1,0 +1,2 @@
+Content/Game/Objects/TKG/tkg/StaticMeshes/tkg.uasset filter=lfs diff=lfs merge=lfs -text
+Content/Game/Objects/rice/rice/StaticMeshes/rice.uasset filter=lfs diff=lfs merge=lfs -text
