@@ -18,12 +18,12 @@ void UInGameInfoViewModel::SetCurrentStageNumber(const int32 InCurrentNumber)
     }
 }
 
-void UInGameInfoViewModel::SetTotalSplineLength(const double InTotal)
+void UInGameInfoViewModel::SetTotalPathLength(const double InTotal)
 {
-    if (TotalSplineLength != InTotal)
+    if (TotalPathLength != InTotal)
     {
-        TotalSplineLength = InTotal;
-        UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TotalSplineLength);
+        TotalPathLength = InTotal;
+        UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TotalPathLength);
     }
 }
 

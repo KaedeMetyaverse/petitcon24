@@ -18,9 +18,9 @@ public:
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
     int32 CurrentStageNumber = 0;
 
-    // 全ステージのスプライン総距離（未実装: 値は今はセットしない）
+    // 全ステージのパス総距離
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
-    double TotalSplineLength = 0.0;
+    double TotalPathLength = 0.0;
 
     // 現在までの進行済み距離（未実装: 値は今はセットしない）
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
@@ -32,7 +32,7 @@ public:
 
     void SetCurrentStageNumber(int32 InCurrentNumber);
 
-    void SetTotalSplineLength(double InTotal);
+    void SetTotalPathLength(double InTotal);
 
     void SetTraveledSplineLength(double InTraveled);
 };

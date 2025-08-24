@@ -20,6 +20,7 @@ public:
     // C++ からの更新ヘルパ（必要に応じて使用）
     void SetStageCount(int32 InStageCount);
     void SetCurrentStageNumber(int32 InCurrentNumber);
+    void SetTotalPathLength(double InTotalLength);
 
 private:
     UPROPERTY()
