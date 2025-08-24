@@ -89,7 +89,7 @@ private:
 
 private:
     TObjectPtr<AFlyingPlayerController> CachedFlyingPlayerController;
-    int32 CurrentPathIndex = INDEX_NONE;
+    int32 CurrentStageIndex = INDEX_NONE;
 
     // 現在ロード済みのレベルをキャッシュ
     UPROPERTY()
@@ -193,8 +193,31 @@ private:
 
     // MVVM: In-Game 情報表示用 ViewModel は LocalPlayerSubsystem で管理
     void UpdateViewModelStageState();
+    // 起動時に総パス長を非同期にプリコンピュート
+    void StartPrecomputeTotalPathLengthAsync();
+    void RequestAsyncLoadForPrecompute();
+    UFUNCTION()
+    void OnPrecomputeStageLoaded();
+    UFUNCTION()
+    void OnPrecomputeStageUnloaded();
+    void FinalizePrecomputeTotalPathLength();
 
     // 一度だけ取得して保持するローカルプレイヤー用サブシステム
     UPROPERTY()
     TObjectPtr<UInGameInfoSubsystem> InGameInfoSubsystem;
+
+    // 総パス長の累積
+    UPROPERTY()
+    double TotalPathLengthAccumulated = 0.0;
+
+    // プリコンピュート用の進行管理
+    int32 PrecomputeStageIndex = 0;
+    FSoftObjectPath PrecomputeCurrentStagePath;
+    
+    // 各ステージのパス長（プリコンピュートで確定）
+    UPROPERTY()
+    TArray<double> StagePathLengths;
+
+    // 進行済み距離の更新（CurrentDistanceOnSpline の単位は uu）
+    void UpdateTraveledPathLength(float CurrentDistanceOnSpline = -1.f);
 };

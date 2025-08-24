@@ -10,6 +10,8 @@ struct FInputActionValue;
 
 // C++専用: スプライン移動完了を通知するデリゲート
 DECLARE_MULTICAST_DELEGATE(FMoveAlongSplineFinishedDelegate);
+// C++専用: スプライン進行距離更新を通知するデリゲート（単位: uu）
+DECLARE_MULTICAST_DELEGATE_OneParam(FSplineProgressUpdatedDelegate, float /*CurrentDistance*/);
 
 UCLASS(abstract)
 class PETITCON24_API AFlyingPlayerController : public APlayerController
@@ -36,6 +38,8 @@ public:
 
     // C++専用: スプライン移動完了デリゲートへのアクセサ
     FMoveAlongSplineFinishedDelegate& OnMoveAlongSplineFinished() { return MoveAlongSplineFinishedDelegate; }
+    // C++専用: スプライン進行距離更新デリゲートへのアクセサ
+    FSplineProgressUpdatedDelegate& OnSplineProgressUpdated() { return SplineProgressUpdatedDelegate; }
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input", meta=(AllowPrivateAccess="true"))
@@ -80,6 +84,8 @@ private:
 
     // C++専用: 完了通知用デリゲート
     FMoveAlongSplineFinishedDelegate MoveAlongSplineFinishedDelegate;
+    // C++専用: 進行距離更新通知
+    FSplineProgressUpdatedDelegate SplineProgressUpdatedDelegate;
 
     // 指定距離のスプライン位置・回転をPawnへ適用
     void ApplyPawnTransformAtDistanceAlongSpline(float Distance, bool bSweep);

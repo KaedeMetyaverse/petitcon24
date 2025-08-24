@@ -193,6 +193,7 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
 
     // 進行距離を更新
     CurrentSplineDistance += ComputeMovementStep(DeltaSeconds);
+    SplineProgressUpdatedDelegate.Broadcast(CurrentSplineDistance);
 
     const float SplineLength = Spline->GetSplineLength();
     if (CurrentSplineDistance >= SplineLength)

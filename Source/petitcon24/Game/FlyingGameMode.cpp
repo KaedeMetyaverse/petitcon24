@@ -48,8 +48,8 @@ void AFlyingGameMode::BeginPlay()
         InGameInfoSubsystem->SetStageCount(Stages.Num());
     }
 
-    // 既存のステージ進行フローを開始
-    StartSequence();
+    // 起動時に全ステージのパス総距離を非同期でプリコンピュート
+    StartPrecomputeTotalPathLengthAsync();
 }
 
 void AFlyingGameMode::ShowInGameWidget()
@@ -251,18 +251,165 @@ void AFlyingGameMode::StartSequence()
     CachedFlyingPlayerController = FlyingPC;
     // 完了通知にバインド
     FlyingPC->OnMoveAlongSplineFinished().AddUObject(this, &AFlyingGameMode::HandleMoveAlongSplineFinished);
+    // 進行距離更新にバインド（Tick毎に呼ばれる）
+    FlyingPC->OnSplineProgressUpdated().AddLambda([this](float CurrentDistance)
+    {
+        UpdateTraveledPathLength(CurrentDistance);
+    });
 
-    CurrentPathIndex = -1;
+    CurrentStageIndex = -1;
     TryStartNextPath();
+}
+
+void AFlyingGameMode::StartPrecomputeTotalPathLengthAsync()
+{
+    TotalPathLengthAccumulated = 0.0;
+    PrecomputeStageIndex = 0;
+    StagePathLengths.Empty();
+    StagePathLengths.SetNum(Stages.Num());
+    RequestAsyncLoadForPrecompute();
+}
+
+void AFlyingGameMode::RequestAsyncLoadForPrecompute()
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    if (!Stages.IsValidIndex(PrecomputeStageIndex))
+    {
+        FinalizePrecomputeTotalPathLength();
+        return;
+    }
+
+    const TSoftObjectPtr<UWorld>& Stage = Stages[PrecomputeStageIndex];
+    const FSoftObjectPath StagePath = Stage.ToSoftObjectPath();
+
+    if (!StagePath.IsValid())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(LOCTEXT("StageSoftPtrIsNone", "A stage in GameMode Stages array is None. Please set a valid level asset."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("A stage in GameMode Stages array is None. Please set a valid level asset."));
+        ++PrecomputeStageIndex;
+        RequestAsyncLoadForPrecompute();
+        return;
+    }
+
+    PrecomputeCurrentStagePath = StagePath;
+
+    FLatentActionInfo Latent;
+    Latent.CallbackTarget = this;
+    Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnPrecomputeStageLoaded);
+    Latent.UUID = 2001;
+    Latent.Linkage = 0;
+    UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, Stage, /*bMakeVisibleAfterLoad*/ false, /*bShouldBlockOnLoad*/ false, Latent);
+}
+
+void AFlyingGameMode::OnPrecomputeStageLoaded()
+{
+    const FString LongPackageName = PrecomputeCurrentStagePath.GetLongPackageName();
+    ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*LongPackageName));
+    if (!Streaming || !Streaming->IsLevelLoaded())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(FText::Format(
+                LOCTEXT("StageNotInLevelsPanelFmt", "Streaming level not found or not loaded: {0}. Please add the stage to Window > Levels beforehand."),
+                FText::FromString(LongPackageName)));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("Streaming level not found or not loaded: %s. Please add the stage to Window > Levels beforehand."), *LongPackageName);
+
+        ++PrecomputeStageIndex;
+        RequestAsyncLoadForPrecompute();
+        return;
+    }
+
+    ULevel* LoadedLevel = Streaming->GetLoadedLevel();
+    check(LoadedLevel != nullptr);
+
+    APathActor* PathActor = FindUniquePathActorInStreamingLevel(LoadedLevel);
+    if (!PathActor) {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(FText::Format(
+                LOCTEXT("NoPathActorInLevelFmt", "No PathActor found in streamed level: {0}. Place exactly one PathActor per sublevel."),
+                FText::FromString(LongPackageName)));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("No PathActor found in streamed level: %s. Place exactly one PathActor per sublevel."), *LongPackageName);
+        return;
+    }
+
+    USplineComponent* Spline = PathActor->GetSplineComponent();
+    check(Spline != nullptr);
+
+    const double StagePathLength = static_cast<double>(Spline->GetSplineLength());
+    TotalPathLengthAccumulated += StagePathLength;
+    if (StagePathLengths.IsValidIndex(PrecomputeStageIndex))
+    {
+        StagePathLengths[PrecomputeStageIndex] = StagePathLength;
+    }
+
+    // 非表示のままアンロード（非同期）
+    {
+        FLatentActionInfo Latent;
+        Latent.CallbackTarget = this;
+        Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnPrecomputeStageUnloaded);
+        Latent.UUID = 2002;
+        Latent.Linkage = 0;
+        UGameplayStatics::UnloadStreamLevel(this, FName(*LongPackageName), Latent, /*bShouldBlockOnUnload*/ false);
+    }
+}
+
+void AFlyingGameMode::OnPrecomputeStageUnloaded()
+{
+    ++PrecomputeStageIndex;
+    RequestAsyncLoadForPrecompute();
+}
+
+void AFlyingGameMode::FinalizePrecomputeTotalPathLength()
+{
+    check(InGameInfoSubsystem != nullptr);
+    InGameInfoSubsystem->SetTotalPathLength(TotalPathLengthAccumulated);
+
+    // プリコンピュート完了後にステージ進行フローを開始
+    StartSequence();
 }
 
 void AFlyingGameMode::UpdateViewModelStageState()
 {
     check(InGameInfoSubsystem != nullptr);
 
-    const int32 CurrentStageNumber = CurrentPathIndex + 1;
+    const int32 CurrentStageNumber = CurrentStageIndex + 1;
 
     InGameInfoSubsystem->SetCurrentStageNumber(CurrentStageNumber);
+}
+
+void AFlyingGameMode::UpdateTraveledPathLength(float CurrentDistanceOnSpline)
+{
+    double traveled = 0.0;
+    // 完了済みステージ分を合算
+    for (int32 i = 0; i < CurrentStageIndex; ++i)
+    {
+        if (StagePathLengths.IsValidIndex(i))
+        {
+            traveled += StagePathLengths[i];
+        }
+    }
+
+    // 現在ステージの進行分を加算
+    traveled += static_cast<double>(CurrentDistanceOnSpline);
+
+    InGameInfoSubsystem->SetTraveledPathLength(traveled);
 }
 
 void AFlyingGameMode::PlayEndingSequence()
@@ -323,8 +470,8 @@ void AFlyingGameMode::TryStartNextPath()
 {
     check(nullptr != CachedFlyingPlayerController);
 
-    ++CurrentPathIndex;
-    if (!Stages.IsValidIndex(CurrentPathIndex))
+    ++CurrentStageIndex;
+    if (!Stages.IsValidIndex(CurrentStageIndex))
     {
         // 全行程完了: PlayerController から Pawn を UnPossess し、エンディングを再生
         const UWorld* World = GetWorld();
@@ -342,7 +489,7 @@ void AFlyingGameMode::TryStartNextPath()
     }
 
     // 0番目（最初の）ステージではローディング画面を出さない
-    if (CurrentPathIndex == 0)
+    if (CurrentStageIndex == 0)
     {
         // 最小表示時間は満了扱いにして、通常の非同期ロードへ
         bMinDurationSatisfied = true;
@@ -362,7 +509,7 @@ void AFlyingGameMode::HandleMoveAlongSplineFinished()
 
 void AFlyingGameMode::ProceedUnloadPreviousStage()
 {
-    const int32 PreviousIndex = CurrentPathIndex - 1;
+    const int32 PreviousIndex = CurrentStageIndex - 1;
     if (PreviousIndex < 0)
     {
         ProceedLoadCurrentStage();
@@ -389,12 +536,12 @@ void AFlyingGameMode::ProceedLoadCurrentStage()
     LatentInfo.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnStageLoaded);
     LatentInfo.UUID = UUID_OnStageLoaded;
     LatentInfo.Linkage = 0;
-    UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, Stages[CurrentPathIndex], true /* visible */, false /* non-blocking */, LatentInfo);
+    UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, Stages[CurrentStageIndex], true /* visible */, false /* non-blocking */, LatentInfo);
 }
 
 void AFlyingGameMode::OnStageLoaded()
 {
-    const FString CurrLongPackageName = Stages[CurrentPathIndex].ToSoftObjectPath().GetLongPackageName();
+    const FString CurrLongPackageName = Stages[CurrentStageIndex].ToSoftObjectPath().GetLongPackageName();
     check(!CurrLongPackageName.IsEmpty());
 
     ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*CurrLongPackageName));
@@ -421,7 +568,7 @@ void AFlyingGameMode::OnStageLoaded()
     bNextStageReady = true;
 
     // Opening は 0 番目のステージロード時にだけ処理
-    if (0 == CurrentPathIndex)
+    if (0 == CurrentStageIndex)
     {
         // ローディングオーバーレイが出ていた場合でも、Opening 再生前にフェードアウトを行う
         TryFinishTransitionAfterLoadAndMin();
@@ -567,7 +714,7 @@ void AFlyingGameMode::OnFadeOutFinished()
     if (CurrentLoadedLevel)
     {
         // 初回ステージの場合は Opening 再生へ
-        if (0 == CurrentPathIndex)
+        if (0 == CurrentStageIndex)
         {
             PlayOpeningSequence();
         }
@@ -592,7 +739,7 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
         if (LoadingOverlayWidget && bIsOverlayVisible)
         {
             // フェードアウト中に次ステージのスプライン先頭へ等速でプレ移動させる
-            if (CurrentLoadedLevel && CurrentPathIndex != 0)
+            if (CurrentLoadedLevel && CurrentStageIndex != 0)
             {
                 if (APathActor* PathActor = FindUniquePathActorInStreamingLevel(CurrentLoadedLevel))
                 {
@@ -613,7 +760,7 @@ void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
             // オーバーレイがない場合でも進行を継続
             if (CurrentLoadedLevel)
             {
-                if (0 == CurrentPathIndex)
+                if (0 == CurrentStageIndex)
                 {
                     // 最初のステージでも、切替開始時点で番号更新
                     UpdateViewModelStageState();
