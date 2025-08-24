@@ -27,11 +27,11 @@ void UInGameInfoViewModel::SetTotalPathLength(const double InTotal)
     }
 }
 
-void UInGameInfoViewModel::SetTraveledSplineLength(const double InTraveled)
+void UInGameInfoViewModel::SetTraveledPathLength(const double InTraveled)
 {
-    if (TraveledSplineLength != InTraveled)
+    if (TraveledPathLength != InTraveled)
     {
-        TraveledSplineLength = InTraveled;
-        UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TraveledSplineLength);
+        TraveledPathLength = InTraveled;
+        UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TraveledPathLength);
     }
 }

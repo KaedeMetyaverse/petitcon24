@@ -22,9 +22,9 @@ public:
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
     double TotalPathLength = 0.0;
 
-    // 現在までの進行済み距離（未実装: 値は今はセットしない）
+    // 現在までの進行済み距離（パス長）
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
-    double TraveledSplineLength = 0.0;
+    double TraveledPathLength = 0.0;
 
 public:
     // C++専用セッター（BPからは取得のみ）
@@ -34,5 +34,5 @@ public:
 
     void SetTotalPathLength(double InTotal);
 
-    void SetTraveledSplineLength(double InTraveled);
+    void SetTraveledPathLength(double InTraveled);
 };
