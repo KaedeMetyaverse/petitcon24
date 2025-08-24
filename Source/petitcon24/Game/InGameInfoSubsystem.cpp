@@ -23,3 +23,8 @@ void UInGameInfoSubsystem::SetCurrentStageNumber(const int32 InCurrentNumber)
 {
     ViewModel->SetCurrentStageNumber(InCurrentNumber);
 }
+
+void UInGameInfoSubsystem::SetTotalPathLength(const double InTotalLength)
+{
+    ViewModel->SetTotalPathLength(InTotalLength);
+}
