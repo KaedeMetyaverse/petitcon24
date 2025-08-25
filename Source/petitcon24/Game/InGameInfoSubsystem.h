@@ -22,6 +22,7 @@ public:
     void SetCurrentStageNumber(int32 InCurrentNumber);
     void SetTotalPathLength(double InTotalLength);
     void SetTraveledPathLength(double InTraveledLength);
+    void SetCurrentHP(int32 InCurrentHP);
 
 private:
     UPROPERTY()

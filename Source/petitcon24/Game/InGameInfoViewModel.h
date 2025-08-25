@@ -26,6 +26,10 @@ public:
     UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
     double TraveledPathLength = 0.0;
 
+    // 現在のプレイヤーHP
+    UPROPERTY(BlueprintReadOnly, FieldNotify, Category="InGameInfo")
+    int32 CurrentHP = 0;
+
 public:
     // C++専用セッター（BPからは取得のみ）
     void SetStageCount(int32 InStageCount);
@@ -35,4 +39,6 @@ public:
     void SetTotalPathLength(double InTotal);
 
     void SetTraveledPathLength(double InTraveled);
+
+    void SetCurrentHP(int32 InCurrentHP);
 };

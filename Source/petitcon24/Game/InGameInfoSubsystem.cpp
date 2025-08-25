@@ -33,3 +33,8 @@ void UInGameInfoSubsystem::SetTotalPathLength(const double InTotalLength)
 {
     ViewModel->SetTotalPathLength(InTotalLength);
 }
+
+void UInGameInfoSubsystem::SetCurrentHP(const int32 InCurrentHP)
+{
+    ViewModel->SetCurrentHP(InCurrentHP);
+}

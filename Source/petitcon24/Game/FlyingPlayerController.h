@@ -101,4 +101,15 @@ private:
 
     // DeltaSeconds に応じた移動ステップ量を算出
     float ComputeMovementStep(float DeltaSeconds) const;
+
+    // HP 更新を購読して ViewModel を更新
+    void BindHealthChangedDelegate(APawn* InPawn);
+    void UnbindHealthChangedDelegate();
+    void HandleHealthChanged(int32 NewHP);
+
+    // デリゲート解除用ハンドル
+    FDelegateHandle HealthChangedHandle;
+
+    // 現在バインド中の HealthComponent を保持（安全な解除用）
+    TWeakObjectPtr<class UHealthComponent> BoundHealthComponent;
 };

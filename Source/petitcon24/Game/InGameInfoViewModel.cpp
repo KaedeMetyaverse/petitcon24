@@ -35,3 +35,12 @@ void UInGameInfoViewModel::SetTraveledPathLength(const double InTraveled)
         UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(TraveledPathLength);
     }
 }
+
+void UInGameInfoViewModel::SetCurrentHP(const int32 InCurrentHP)
+{
+    if (CurrentHP != InCurrentHP)
+    {
+        CurrentHP = InCurrentHP;
+        UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED(CurrentHP);
+    }
+}

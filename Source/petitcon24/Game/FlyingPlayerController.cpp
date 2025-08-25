@@ -8,6 +8,8 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
+#include "HealthComponent.h"
+#include "InGameInfoSubsystem.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #include "Modules/ModuleManager.h"
@@ -260,12 +262,17 @@ void AFlyingPlayerController::OnPossess(APawn* InPawn)
         // Pawn のルート（RootComponent）に対する UpdatedComponent のローカル位置
         UpdatedComponentInitialLocalOffset = UpdatedComp->GetRelativeLocation();
     }
+
+    // 既存の購読を解除してから新規にバインド
+    UnbindHealthChangedDelegate();
+    BindHealthChangedDelegate(InPawn);
 }
 
 void AFlyingPlayerController::OnUnPossess()
 {
     Super::OnUnPossess();
     UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
+    UnbindHealthChangedDelegate();
 }
 
 void AFlyingPlayerController::SetupInputComponent() 
@@ -341,6 +348,47 @@ void AFlyingPlayerController::DoMoveControlledPawn(const float Right, const floa
 
     ControlledPawn->AddMovementInput(UpDirection, Up);
     ControlledPawn->AddMovementInput(RightDirection, Right);
+}
+
+void AFlyingPlayerController::BindHealthChangedDelegate(APawn* InPawn)
+{
+    check(InPawn);
+
+    if (UHealthComponent* HealthComponent = InPawn->FindComponentByClass<UHealthComponent>())
+    {
+        if (!HealthChangedHandle.IsValid())
+        {
+            HealthChangedHandle = HealthComponent->OnHealthChanged().AddUObject(this, &AFlyingPlayerController::HandleHealthChanged);
+            BoundHealthComponent = HealthComponent;
+
+            // 初期値の反映
+            HandleHealthChanged(HealthComponent->GetCurrentHP());
+        }
+    }
+}
+
+void AFlyingPlayerController::UnbindHealthChangedDelegate()
+{
+    if (HealthChangedHandle.IsValid())
+    {
+        if (UHealthComponent* HealthComponent = BoundHealthComponent.Get())
+        {
+            HealthComponent->OnHealthChanged().Remove(HealthChangedHandle);
+        }
+        HealthChangedHandle.Reset();
+        BoundHealthComponent.Reset();
+    }
+}
+
+void AFlyingPlayerController::HandleHealthChanged(const int32 NewHP)
+{
+    if (ULocalPlayer* LP = GetLocalPlayer())
+    {
+        if (UInGameInfoSubsystem* Subsys = LP->GetSubsystem<UInGameInfoSubsystem>())
+        {
+            Subsys->SetCurrentHP(NewHP);
+        }
+    }
 }
 
 #undef LOCTEXT_NAMESPACE
