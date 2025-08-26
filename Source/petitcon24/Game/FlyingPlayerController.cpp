@@ -283,6 +283,11 @@ void AFlyingPlayerController::OnUnPossess()
     Super::OnUnPossess();
     UpdatedComponentInitialLocalOffset = FVector::ZeroVector;
     UnbindHealthChangedDelegate();
+
+    // 非所持時は追従・移動を完全停止
+    bIsFollowingSpline = false;
+    bIsPreMovingTowardsSplineStart = false;
+    bIsPostMovingForwardAfterSplineEnd = false;
 }
 
 void AFlyingPlayerController::SetupInputComponent() 

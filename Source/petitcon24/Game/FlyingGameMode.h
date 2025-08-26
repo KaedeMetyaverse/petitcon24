@@ -221,4 +221,10 @@ private:
 
     // 進行済み距離の更新（CurrentDistanceOnSpline の単位は uu）
     void UpdateTraveledPathLength(float CurrentDistanceOnSpline = -1.f);
+
+    // HP 変更ハンドラ（HP0で操作不能化: UnPossess）
+    void HandlePlayerHealthChanged(int32 NewHP);
+
+    // バインド解除用
+    FDelegateHandle PlayerHealthChangedHandle;
 };

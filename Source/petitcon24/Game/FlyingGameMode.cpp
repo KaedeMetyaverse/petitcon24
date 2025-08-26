@@ -51,6 +51,21 @@ void AFlyingGameMode::BeginPlay()
         InGameInfoSubsystem->SetStageCount(Stages.Num());
     }
 
+    // プレイヤーのHP変更を監視
+    {
+        UWorld* World = GetWorld();
+        check(World != nullptr);
+
+        APlayerController* PC = World->GetFirstPlayerController();
+        check(PC != nullptr);
+
+        AFlyingPlayerState* PS = PC->GetPlayerState<AFlyingPlayerState>();
+        check(PS != nullptr);
+
+        check(!PlayerHealthChangedHandle.IsValid());
+        PlayerHealthChangedHandle = PS->OnHealthChanged().AddUObject(this, &AFlyingGameMode::HandlePlayerHealthChanged);
+    }
+
     // 起動時に全ステージのパス総距離を非同期でプリコンピュート
     StartPrecomputeTotalPathLengthAsync();
 }
@@ -413,6 +428,24 @@ void AFlyingGameMode::UpdateTraveledPathLength(float CurrentDistanceOnSpline)
     traveled += static_cast<double>(CurrentDistanceOnSpline);
 
     InGameInfoSubsystem->SetTraveledPathLength(traveled);
+}
+
+void AFlyingGameMode::HandlePlayerHealthChanged(const int32 NewHP)
+{
+    if (NewHP > 0)
+    {
+        return;
+    }
+
+    // HP0: 操作不能化
+
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    APlayerController* PC = World->GetFirstPlayerController();
+    check(PC != nullptr);
+
+    PC->UnPossess();
 }
 
 void AFlyingGameMode::PlayEndingSequence()
