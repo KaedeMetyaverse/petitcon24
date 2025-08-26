@@ -5,7 +5,8 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Components/ArrowComponent.h"
-#include "FlyingPlayerState.h"
+#include "IHasHealth.h"
+#include "GameFramework/PlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "FlyingPathMarkerActor.h"
@@ -54,6 +55,24 @@ void AFlyingPawn::BeginPlay()
     OnActorHit.AddDynamic(this, &AFlyingPawn::OnPawnHit);
 }
 
+void AFlyingPawn::OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerState* OldPlayerState)
+{
+    Super::OnPlayerStateChanged(NewPlayerState, OldPlayerState);
+
+    if (NewPlayerState != OldPlayerState)
+    {
+        if (OldPlayerState)
+        {
+            UnbindHealthChangedDelegate(OldPlayerState);
+        }
+    
+        if (NewPlayerState)
+        {
+            BindHealthChangedDelegate(NewPlayerState);
+        }
+    }
+}
+
 float AFlyingPawn::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
@@ -61,12 +80,12 @@ float AFlyingPawn::TakeDamage(float DamageAmount, const FDamageEvent& DamageEven
     AController* OwningController = GetController();
     if (ensureAlwaysMsgf(OwningController, TEXT("calling TakeDamage without OwningController is not expected")))
     {
-        AFlyingPlayerState* PS = OwningController->GetPlayerState<AFlyingPlayerState>();
-        check(PS);
+        IHasHealth* Health = Cast<IHasHealth>(OwningController->PlayerState.Get());
+        check(Health);
 
-        if (!PS->IsDead())
+        if (!Health->IsDead())
         {
-            PS->ApplyDamage(DamageAmount);
+            Health->ApplyDamage(DamageAmount);
             AppliedDamage += DamageAmount;
         }
     }
@@ -93,4 +112,34 @@ void AFlyingPawn::EndInvincibility()
 {
     // プロファイルを再適用
     RootSphere->SetCollisionProfileName(TEXT("FlyingPawn"));
+}
+
+void AFlyingPawn::BindHealthChangedDelegate(APlayerState* NewPlayerState)
+{
+    check(NewPlayerState);
+
+    IHasHealth* Health = Cast<IHasHealth>(NewPlayerState);
+    checkf(Health != nullptr, TEXT("BindHealthChangedDelegate requires PlayerState to implement IHasHealth"));
+
+    check (!HealthChangedHandle.IsValid());
+    HealthChangedHandle = Health->OnHealthChanged().AddUObject(this, &AFlyingPawn::HandleHealthChanged);
+    HandleHealthChanged(Health->GetCurrentHP());
+}
+
+void AFlyingPawn::UnbindHealthChangedDelegate(APlayerState* OldPlayerState)
+{
+    check(OldPlayerState);
+
+    IHasHealth* Health = Cast<IHasHealth>(OldPlayerState);
+    checkf(Health != nullptr, TEXT("UnbindHealthChangedDelegate expects PlayerState to implement IHasHealth when handle is valid"));
+
+    check(HealthChangedHandle.IsValid());
+    Health->OnHealthChanged().Remove(HealthChangedHandle);
+    HealthChangedHandle.Reset();
+}
+
+void AFlyingPawn::HandleHealthChanged(const int32 NewHP)
+{
+    // イベントを通知
+    ReceiveHealthChanged(NewHP);
 }

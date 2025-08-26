@@ -43,7 +43,7 @@ bool AFlyingPlayerState::IsDead() const
     return CurrentHP <= 0;
 }
 
-FOnHealthChanged& AFlyingPlayerState::OnHealthChanged()
+FOnHealthChangedDelegate& AFlyingPlayerState::OnHealthChanged()
 {
     return HealthChangedDelegate;
 }

@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "UObject/ObjectPtr.h"
+#include "GameFramework/PlayerState.h"
 class USphereComponent;
 class USkeletalMeshComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UArrowComponent;
 struct FHitResult;
+#include "IHasHealth.h"
 #include "FlyingPawn.generated.h"
 
 UCLASS(abstract)
@@ -19,8 +21,13 @@ class PETITCON24_API AFlyingPawn : public APawn
 public:
     AFlyingPawn();
 
+    // HP変更の受信フック（実装は任意）
+    UFUNCTION(BlueprintImplementableEvent, Category="Health")
+    void ReceiveHealthChanged(int32 NewHP);
+
 protected:
     virtual void BeginPlay() override;
+    virtual void OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerState* OldPlayerState) override;
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
@@ -52,6 +59,11 @@ private:
 #endif
     
     FTimerHandle InvincibilityTimerHandle;
+
+private: // HP→外観: デリゲート購読
+    void BindHealthChangedDelegate(APlayerState* NewPlayerState);
+    void UnbindHealthChangedDelegate(APlayerState* OldPlayerState);
+    void HandleHealthChanged(int32 NewHP);
+
+    FDelegateHandle HealthChangedHandle;
 };
-
-

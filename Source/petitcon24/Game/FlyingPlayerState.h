@@ -2,12 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
+#include "IHasHealth.h"
 #include "FlyingPlayerState.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, int32 /*NewHP*/);
-
 UCLASS()
-class PETITCON24_API AFlyingPlayerState : public APlayerState
+class PETITCON24_API AFlyingPlayerState : public APlayerState, public IHasHealth
 {
     GENERATED_BODY()
 
@@ -17,12 +16,11 @@ public:
     virtual void BeginPlay() override;
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-    int32 GetCurrentHP() const;
-    bool IsDead() const;
-
-    void ApplyDamage(float DamageAmount);
-
-    FOnHealthChanged& OnHealthChanged();
+    // IHasHealth 実装
+    virtual int32 GetCurrentHP() const override;
+    virtual bool IsDead() const override;
+    virtual void ApplyDamage(float DamageAmount) override;
+    virtual FOnHealthChangedDelegate& OnHealthChanged() override;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Health", meta=(ClampMin="0", UIMin="0"))
@@ -35,5 +33,5 @@ private:
     UFUNCTION()
     void OnRep_CurrentHP();
 
-    FOnHealthChanged HealthChangedDelegate;
+    FOnHealthChangedDelegate HealthChangedDelegate;
 };
