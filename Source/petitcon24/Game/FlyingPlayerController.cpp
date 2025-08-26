@@ -1,4 +1,5 @@
 #include "FlyingPlayerController.h"
+#include "FlyingPlayerCameraManager.h"
 #include "Components/SplineComponent.h"
 #include "Components/SceneComponent.h"
 #include "GameFramework/Pawn.h"
@@ -22,6 +23,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFlyingPlayerController, Log, All);
 AFlyingPlayerController::AFlyingPlayerController()
 {
     PrimaryActorTick.bCanEverTick = true;
+    // プレイヤーカメラマネージャを専用クラスに差し替え
+    PlayerCameraManagerClass = AFlyingPlayerCameraManager::StaticClass();
 }
 
 FMoveAlongSplineFinishedDelegate& AFlyingPlayerController::OnMoveAlongSplineFinished()
