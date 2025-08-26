@@ -6,6 +6,7 @@ class USplineComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class AFlyingPlayerState;
 #include "FlyingPlayerController.generated.h"
 
 // C++専用: スプライン移動完了を通知するデリゲート
@@ -37,9 +38,9 @@ public:
     virtual void OnUnPossess() override;
 
     // C++専用: スプライン移動完了デリゲートへのアクセサ
-    FMoveAlongSplineFinishedDelegate& OnMoveAlongSplineFinished() { return MoveAlongSplineFinishedDelegate; }
+    FMoveAlongSplineFinishedDelegate& OnMoveAlongSplineFinished();
     // C++専用: スプライン進行距離更新デリゲートへのアクセサ
-    FSplineProgressUpdatedDelegate& OnSplineProgressUpdated() { return SplineProgressUpdatedDelegate; }
+    FSplineProgressUpdatedDelegate& OnSplineProgressUpdated();
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input", meta=(AllowPrivateAccess="true"))
@@ -103,13 +104,13 @@ private:
     float ComputeMovementStep(float DeltaSeconds) const;
 
     // HP 更新を購読して ViewModel を更新
-    void BindHealthChangedDelegate(APawn* InPawn);
+    void BindHealthChangedDelegate();
     void UnbindHealthChangedDelegate();
     void HandleHealthChanged(int32 NewHP);
 
     // デリゲート解除用ハンドル
     FDelegateHandle HealthChangedHandle;
 
-    // 現在バインド中の HealthComponent を保持（安全な解除用）
-    TWeakObjectPtr<class UHealthComponent> BoundHealthComponent;
+    // 現在バインド中の PlayerState を保持（安全な解除用）
+    TWeakObjectPtr<class AFlyingPlayerState> BoundPlayerState;
 };

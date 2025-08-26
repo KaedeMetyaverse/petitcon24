@@ -8,7 +8,6 @@ class USkeletalMeshComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UArrowComponent;
-class UHealthComponent;
 struct FHitResult;
 #include "FlyingPawn.generated.h"
 
@@ -35,10 +34,6 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     TObjectPtr<UFloatingPawnMovement> MovementComponent;
-
-    // HP 管理
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    TObjectPtr<UHealthComponent> HealthComponent;
 
     UFUNCTION()
     void OnPawnHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);

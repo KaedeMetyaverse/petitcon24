@@ -14,6 +14,7 @@
 #include "Engine/Level.h"
 #include "Kismet/GameplayStatics.h"
 #include "InGameInfoSubsystem.h"
+#include "FlyingPlayerState.h"
 #include "PathActor.h"
 #include "LoadingOverlayBase.h"
 #include "Blueprint/UserWidget.h"
@@ -27,6 +28,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFlyingGameMode, Log, All);
 #define LOCTEXT_NAMESPACE "FlyingGameMode"
 AFlyingGameMode::AFlyingGameMode()
 {
+    // 既定の PlayerState を FlyingPlayerState に設定
+    PlayerStateClass = AFlyingPlayerState::StaticClass();
 }
 
 void AFlyingGameMode::BeginPlay()

@@ -38,3 +38,8 @@ void UInGameInfoSubsystem::SetCurrentHP(const int32 InCurrentHP)
 {
     ViewModel->SetCurrentHP(InCurrentHP);
 }
+
+UInGameInfoViewModel* UInGameInfoSubsystem::GetInGameInfoViewModel() const
+{
+    return ViewModel;
+}

@@ -8,7 +8,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
-#include "HealthComponent.h"
+#include "FlyingPlayerState.h"
 #include "InGameInfoSubsystem.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
@@ -22,6 +22,16 @@ DEFINE_LOG_CATEGORY_STATIC(LogFlyingPlayerController, Log, All);
 AFlyingPlayerController::AFlyingPlayerController()
 {
     PrimaryActorTick.bCanEverTick = true;
+}
+
+FMoveAlongSplineFinishedDelegate& AFlyingPlayerController::OnMoveAlongSplineFinished()
+{
+    return MoveAlongSplineFinishedDelegate;
+}
+
+FSplineProgressUpdatedDelegate& AFlyingPlayerController::OnSplineProgressUpdated()
+{
+    return SplineProgressUpdatedDelegate;
 }
 
 float AFlyingPlayerController::ComputeMovementStep(const float DeltaSeconds) const
@@ -265,7 +275,7 @@ void AFlyingPlayerController::OnPossess(APawn* InPawn)
 
     // 既存の購読を解除してから新規にバインド
     UnbindHealthChangedDelegate();
-    BindHealthChangedDelegate(InPawn);
+    BindHealthChangedDelegate();
 }
 
 void AFlyingPlayerController::OnUnPossess()
@@ -350,20 +360,16 @@ void AFlyingPlayerController::DoMoveControlledPawn(const float Right, const floa
     ControlledPawn->AddMovementInput(RightDirection, Right);
 }
 
-void AFlyingPlayerController::BindHealthChangedDelegate(APawn* InPawn)
+void AFlyingPlayerController::BindHealthChangedDelegate()
 {
-    check(InPawn);
+    AFlyingPlayerState* PS = GetPlayerState<AFlyingPlayerState>();
+    check(PS);
 
-    if (UHealthComponent* HealthComponent = InPawn->FindComponentByClass<UHealthComponent>())
+    if (!HealthChangedHandle.IsValid())
     {
-        if (!HealthChangedHandle.IsValid())
-        {
-            HealthChangedHandle = HealthComponent->OnHealthChanged().AddUObject(this, &AFlyingPlayerController::HandleHealthChanged);
-            BoundHealthComponent = HealthComponent;
-
-            // 初期値の反映
-            HandleHealthChanged(HealthComponent->GetCurrentHP());
-        }
+        HealthChangedHandle = PS->OnHealthChanged().AddUObject(this, &AFlyingPlayerController::HandleHealthChanged);
+        BoundPlayerState = PS;
+        HandleHealthChanged(PS->GetCurrentHP());
     }
 }
 
@@ -371,12 +377,12 @@ void AFlyingPlayerController::UnbindHealthChangedDelegate()
 {
     if (HealthChangedHandle.IsValid())
     {
-        if (UHealthComponent* HealthComponent = BoundHealthComponent.Get())
-        {
-            HealthComponent->OnHealthChanged().Remove(HealthChangedHandle);
-        }
+        AFlyingPlayerState* PS = BoundPlayerState.Get();
+        check(PS);
+
+        PS->OnHealthChanged().Remove(HealthChangedHandle);
         HealthChangedHandle.Reset();
-        BoundHealthComponent.Reset();
+        BoundPlayerState.Reset();
     }
 }
 

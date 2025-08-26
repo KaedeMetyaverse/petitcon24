@@ -5,7 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Components/ArrowComponent.h"
-#include "HealthComponent.h"
+#include "FlyingPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "FlyingPathMarkerActor.h"
@@ -28,8 +28,6 @@ AFlyingPawn::AFlyingPawn()
 
     MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComponent"));
     MovementComponent->UpdatedComponent = SkeletalMesh;
-
-    HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
     // コントローラーの回転に自動追従
     bUseControllerRotationYaw = true;
@@ -60,10 +58,17 @@ float AFlyingPawn::TakeDamage(float DamageAmount, const FDamageEvent& DamageEven
 {
     float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-    if (!HealthComponent->IsDead())
+    AController* OwningController = GetController();
+    if (ensureAlwaysMsgf(OwningController, TEXT("calling TakeDamage without OwningController is not expected")))
     {
-        HealthComponent->ApplyDamage(DamageAmount);
-        AppliedDamage += DamageAmount;
+        AFlyingPlayerState* PS = OwningController->GetPlayerState<AFlyingPlayerState>();
+        check(PS);
+
+        if (!PS->IsDead())
+        {
+            PS->ApplyDamage(DamageAmount);
+            AppliedDamage += DamageAmount;
+        }
     }
 
     return AppliedDamage;
