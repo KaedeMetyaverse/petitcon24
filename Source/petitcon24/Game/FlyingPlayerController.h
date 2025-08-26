@@ -53,7 +53,8 @@ protected:
 
 private:
     // 追従スピード（クラス定数）
-    static constexpr float SplineMoveSpeed = 2000.f;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="SplineFollow", meta=(AllowPrivateAccess="true"))
+    float SplineMoveSpeed = 2000.f;
 
     // ピボットからの許容移動半径
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="SplineFollow", meta=(AllowPrivateAccess="true"))
