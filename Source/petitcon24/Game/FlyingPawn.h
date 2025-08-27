@@ -4,11 +4,12 @@
 #include "GameFramework/Pawn.h"
 #include "UObject/ObjectPtr.h"
 #include "GameFramework/PlayerState.h"
-class USphereComponent;
+class USceneComponent;
 class USkeletalMeshComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UArrowComponent;
+class UFlyingPawnCollisionComponent;
 struct FHitResult;
 #include "IHasHealth.h"
 #include "FlyingPawn.generated.h"
@@ -21,17 +22,23 @@ class PETITCON24_API AFlyingPawn : public APawn
 public:
     AFlyingPawn();
 
+    void EnableCollision();
+    void DisableCollision();
+
+    // Pawn と補助コリジョンアクタの両方へ Location を適用
+    void SetLocationWithCollision(const FVector& NewLocation, bool bSweep = false);
+
     // HP変更の受信フック（実装は任意）
     UFUNCTION(BlueprintImplementableEvent, Category="Health")
     void ReceiveHealthChanged(int32 NewHP);
 
 protected:
-    virtual void BeginPlay() override;
+    virtual void PostInitializeComponents() override;
     virtual void OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerState* OldPlayerState) override;
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    TObjectPtr<USphereComponent> RootSphere;
+    TObjectPtr<USceneComponent> Root;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     TObjectPtr<USkeletalMeshComponent> SkeletalMesh;
@@ -41,6 +48,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     TObjectPtr<UFloatingPawnMovement> MovementComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    TObjectPtr<UFlyingPawnCollisionComponent> CollisionComponent;
 
     UFUNCTION()
     void OnPawnHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
@@ -64,6 +74,9 @@ private: // HP→外観: デリゲート購読
     void BindHealthChangedDelegate(APlayerState* NewPlayerState);
     void UnbindHealthChangedDelegate(APlayerState* OldPlayerState);
     void HandleHealthChanged(int32 NewHP);
+
+    // 補助アクタのヒットイベントへバインド
+    void BindCollisionHit();
 
     FDelegateHandle HealthChangedHandle;
 };

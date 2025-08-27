@@ -17,7 +17,7 @@ protected:
 
 	// プレイヤー操作中のPawnとOverlapした時にBPで処理したい場合に実装
 	UFUNCTION(BlueprintImplementableEvent, Category="Events")
-	void OnOverlappedByPlayerPawn(APawn* PlayerPawn);
+	void OnOverlappedByPlayerPawn();
 
 private:
 	// 多重スケジュール防止

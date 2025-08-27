@@ -4,6 +4,7 @@
 #include "Components/SceneComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "FlyingPawn.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
@@ -60,17 +61,23 @@ void AFlyingPlayerController::ApplyPawnTransformAtDistanceAlongSpline(const floa
     check(Spline != nullptr);
 
     APawn* ControlledPawn = GetPawn();
-    if (nullptr == ControlledPawn)
+    if (!ensureAlways(ControlledPawn))
     {
         UE_LOG(LogFlyingPlayerController, Error, TEXT("ControlledPawn is nullptr"));
-        UE_DEBUG_BREAK();
+        return;
+    }
+
+    AFlyingPawn* FlyingPawn = Cast<AFlyingPawn>(ControlledPawn);
+    if (!ensureAlways(FlyingPawn))
+    {
+        UE_LOG(LogFlyingPlayerController, Error, TEXT("ControlledPawn is not a FlyingPawn"));
         return;
     }
 
     const FVector NewLocation = Spline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
     const FRotator NewRotation = Spline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-    // 位置は Pawn へ、回転はコントローラーへ適用（Pawn は bUseControllerRotation* で追従）
-    ControlledPawn->SetActorLocation(NewLocation, /*bSweep*/ bSweep);
+    // 位置は Pawn & CollisionComponent へ、回転はコントローラーへ適用（Pawn は bUseControllerRotation* で追従）
+    FlyingPawn->SetLocationWithCollision(NewLocation, /*bSweep*/ bSweep);
     SetControlRotation(NewRotation);
 
     // ピボットを更新
@@ -90,6 +97,13 @@ void AFlyingPlayerController::StartMoveAlongSpline(TObjectPtr<USplineComponent> 
 
     // スタート地点へ即時移動（衝突無しでテレポート相当）
     ApplyPawnTransformAtDistanceAlongSpline(/*Distance*/ 0.f, /*bSweep*/ false);
+
+    // スプライン追従中のみコリジョンを有効化
+    AFlyingPawn* FlyingPawn = Cast<AFlyingPawn>(GetPawn());
+    if (ensureAlways(FlyingPawn))
+    {
+        FlyingPawn->EnableCollision();
+    }
 }
 
 void AFlyingPlayerController::PrepareMoveTowardsSplineStartDuringFade(TObjectPtr<USplineComponent> InSpline, float FadeDurationSeconds)
@@ -215,6 +229,13 @@ void AFlyingPlayerController::Tick(float DeltaSeconds)
     {
         CurrentSplineDistance = SplineLength;
         bIsFollowingSpline = false;
+
+        // 追従終了時にコリジョンを無効化
+        AFlyingPawn* FlyingPawn = Cast<AFlyingPawn>(GetPawn());
+        if (ensureAlways(FlyingPawn))
+        {
+            FlyingPawn->DisableCollision();
+        }
     }
 
     ApplyPawnTransformAtDistanceAlongSpline(/*Distance*/ CurrentSplineDistance, /*bSweep*/ true);

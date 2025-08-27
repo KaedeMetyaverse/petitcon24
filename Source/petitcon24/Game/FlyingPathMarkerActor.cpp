@@ -1,6 +1,7 @@
 #include "FlyingPathMarkerActor.h"
 #include "TimerManager.h"
 #include "GameFramework/Pawn.h"
+#include "FlyingPawnCollisionActor.h"
 
 AFlyingPathMarkerActor::AFlyingPathMarkerActor()
 {
@@ -16,15 +17,32 @@ void AFlyingPathMarkerActor::NotifyActorBeginOverlap(AActor* OtherActor)
 		return;
 	}
 
-	// プレイヤーが現在操作している Pawn との Overlap のみ反応
-	APawn* OtherPawn = Cast<APawn>(OtherActor);
-	if (nullptr == OtherPawn || !OtherPawn->IsPlayerControlled())
+	// AFlyingPawnCollisionActor 以外は無視
+	if (!OtherActor->IsA(AFlyingPawnCollisionActor::StaticClass()))
+	{
+		return;
+	}
+
+	// プレイヤーが操作中 以外は無視
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = World->GetFirstPlayerController();
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (!PlayerController->GetPawn())
 	{
 		return;
 	}
 
 	// BPへ通知（実装されていれば呼び出し）
-	OnOverlappedByPlayerPawn(OtherPawn);
+	OnOverlappedByPlayerPawn();
 
 	bDestroyScheduled = true;
 
