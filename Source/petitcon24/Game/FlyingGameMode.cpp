@@ -505,7 +505,7 @@ void AFlyingGameMode::OnDeathStageUnloaded()
     check(World != nullptr);
 
     // 指定がなければ何もしない（安全側）。ログは Warning
-    if ((!DeathMovieLevel.IsValid()) && (!DeathMovieLevel.ToSoftObjectPath().IsValid()))
+    if (!DeathMovieLevel.ToSoftObjectPath().IsValid())
     {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
@@ -601,7 +601,7 @@ void AFlyingGameMode::HandleDeathMovieFinished()
     }
 
     // タイトルレベル未設定なら何もしない（警告）
-    if ((!TitleLevel.IsValid()) && (!TitleLevel.ToSoftObjectPath().IsValid()))
+    if (!TitleLevel.ToSoftObjectPath().IsValid())
     {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
@@ -654,7 +654,7 @@ bool AFlyingGameMode::CreateSequencePlayer(
     TObjectPtr<ALevelSequenceActor>& OutActor,
     const FText& NotSetMessage)
 {
-    if (!SequencePtr.IsValid() && !SequencePtr.ToSoftObjectPath().IsValid())
+    if (!SequencePtr.ToSoftObjectPath().IsValid())
     {
 #if WITH_EDITOR
         if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
