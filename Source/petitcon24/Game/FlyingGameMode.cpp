@@ -427,9 +427,18 @@ void AFlyingGameMode::FinalizePrecomputeTotalPathLength()
 
 void AFlyingGameMode::StartPreludeBeforeStartSequence()
 {
-	// レベルかシーケンスのどちらかが未設定なら、即 StartSequence
-	const bool bHasLevel = PreludeLevel.ToSoftObjectPath().IsValid();
-	const bool bHasSequence = PreludeSequence.ToSoftObjectPath().IsValid();
+	// GameInstanceSubsystem の死亡履歴で短縮プレリュードを優先
+	UPetitcon24GameSubsystem* GameSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPetitcon24GameSubsystem>() : nullptr;
+	check(GameSubsystem != nullptr);
+	const bool bUseShort = GameSubsystem->GetHasDiedOnce();
+
+	// 候補を選択（未設定ならフォールバック）
+	ActivePreludeLevel = bUseShort && ShortPreludeLevel.ToSoftObjectPath().IsValid() ? ShortPreludeLevel : PreludeLevel;
+	ActivePreludeSequence = bUseShort && ShortPreludeSequence.ToSoftObjectPath().IsValid() ? ShortPreludeSequence : PreludeSequence;
+
+	// レベルかシーケンスが欠けていればスキップ
+	const bool bHasLevel = ActivePreludeLevel.ToSoftObjectPath().IsValid();
+	const bool bHasSequence = ActivePreludeSequence.ToSoftObjectPath().IsValid();
 	if (!bHasLevel || !bHasSequence)
 	{
 #if WITH_EDITOR
@@ -440,11 +449,11 @@ void AFlyingGameMode::StartPreludeBeforeStartSequence()
 				FMessageLog Log("PIE");
 				if (!bHasLevel)
 				{
-					Log.Warning(LOCTEXT("PreludeLevelNotSet", "PreludeLevel is not set in GameMode. Skipping prelude."));
+					Log.Warning(LOCTEXT("PreludeLevelNotSet", "PreludeLevel (or ShortPreludeLevel) is not set in GameMode. Skipping prelude."));
 				}
 				if (!bHasSequence)
 				{
-					Log.Warning(LOCTEXT("PreludeSequenceNotSet", "PreludeSequence is not set in GameMode. Skipping prelude."));
+					Log.Warning(LOCTEXT("PreludeSequenceNotSet", "PreludeSequence (or ShortPreludeSequence) is not set in GameMode. Skipping prelude."));
 				}
 			}
 		}
@@ -454,7 +463,7 @@ void AFlyingGameMode::StartPreludeBeforeStartSequence()
 		return;
 	}
 
-	const FSoftObjectPath PreludePath = PreludeLevel.ToSoftObjectPath();
+	const FSoftObjectPath PreludePath = ActivePreludeLevel.ToSoftObjectPath();
 	PreludeLongPackageName = PreludePath.GetLongPackageName();
 	if (!ensureAlways(!PreludeLongPackageName.IsEmpty()))
 	{
@@ -467,7 +476,7 @@ void AFlyingGameMode::StartPreludeBeforeStartSequence()
 	Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnPreludeLevelLoaded);
 	Latent.UUID = 4001;
 	Latent.Linkage = 0;
-	UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, PreludeLevel, /*bMakeVisibleAfterLoad*/ true, /*bShouldBlockOnLoad*/ false, Latent);
+	UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, ActivePreludeLevel, /*bMakeVisibleAfterLoad*/ true, /*bShouldBlockOnLoad*/ false, Latent);
 }
 
 void AFlyingGameMode::OnPreludeLevelLoaded()
@@ -499,7 +508,7 @@ void AFlyingGameMode::OnPreludeLevelLoaded()
 
 void AFlyingGameMode::PlayPreludeSequence()
 {
-	if (!CreateSequencePlayer(PreludeSequence, PreludeSequencePlayer, PreludeSequenceActor, LOCTEXT("PreludeSequenceNotSet2", "PreludeSequence is not set in GameMode.")))
+	if (!CreateSequencePlayer(ActivePreludeSequence, PreludeSequencePlayer, PreludeSequenceActor, LOCTEXT("PreludeSequenceNotSet2", "PreludeSequence is not set in GameMode.")))
 	{
 		StartSequence();
 		return;
@@ -537,6 +546,8 @@ void AFlyingGameMode::OnPreludeLevelUnloaded()
 	PreludeSequencePlayer = nullptr;
 	PreludeSequenceActor = nullptr;
 	PreludeLongPackageName.Reset();
+	ActivePreludeLevel.Reset();
+	ActivePreludeSequence.Reset();
 
 	// 本編開始
 	StartSequence();

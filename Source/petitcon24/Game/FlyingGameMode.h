@@ -291,6 +291,13 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "OpeningPrelude")
     TSoftObjectPtr<ULevelSequence> PreludeSequence;
 
+    // 二回目以降に再生する短縮プレリュード
+    UPROPERTY(EditDefaultsOnly, Category = "OpeningPrelude")
+    TSoftObjectPtr<UWorld> ShortPreludeLevel;
+
+    UPROPERTY(EditDefaultsOnly, Category = "OpeningPrelude")
+    TSoftObjectPtr<ULevelSequence> ShortPreludeSequence;
+
     // 再生用に保持（GC対策）
     UPROPERTY()
     TObjectPtr<ULevelSequencePlayer> PreludeSequencePlayer;
@@ -304,4 +311,8 @@ private:
 
     // 管理用（Unload に使用）
     FString PreludeLongPackageName;
+
+    // 実行時に選ばれたプレリュード（通常 or 短縮）を保持
+    TSoftObjectPtr<UWorld> ActivePreludeLevel;
+    TSoftObjectPtr<ULevelSequence> ActivePreludeSequence;
 };
