@@ -587,7 +587,43 @@ void AFlyingGameMode::PlayDeathMovieSequence()
     HideHowToWidget();
     HideInGameWidget();
 
+    // 終了時ハンドラをバインド
+    DeathMovieSequencePlayer->OnFinished.AddDynamic(this, &AFlyingGameMode::HandleDeathMovieFinished);
+
     DeathMovieSequencePlayer->Play();
+}
+
+void AFlyingGameMode::HandleDeathMovieFinished()
+{
+    if (DeathMovieSequencePlayer)
+    {
+        DeathMovieSequencePlayer->OnFinished.RemoveDynamic(this, &AFlyingGameMode::HandleDeathMovieFinished);
+    }
+
+    // タイトルレベル未設定なら何もしない（警告）
+    if ((!TitleLevel.IsValid()) && (!TitleLevel.ToSoftObjectPath().IsValid()))
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("TitleLevelNotSet", "TitleLevel is not set in GameMode. Staying on current level."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("TitleLevel is not set in GameMode. Staying on current level."));
+        return;
+    }
+
+    const FSoftObjectPath TitlePath = TitleLevel.ToSoftObjectPath();
+    const FString TitleLongPackageName = TitlePath.GetLongPackageName();
+    if (!ensureAlways(!TitleLongPackageName.IsEmpty()))
+    {
+        return;
+    }
+
+    // 非同期ロード済みのサブレベルをクリーンアップする場合はここで必要に応じて処理
+    // タイトルは通常 Persistent として開く: OpenLevel
+    UGameplayStatics::OpenLevel(this, FName(*TitleLongPackageName));
 }
 
 void AFlyingGameMode::PlayEndingSequence()

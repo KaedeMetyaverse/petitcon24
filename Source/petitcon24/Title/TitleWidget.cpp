@@ -9,7 +9,7 @@ void UTitleWidget::NativeOnInitialized()
 	check(StartButton);
 	StartButton->OnClicked.AddDynamic(this, &UTitleWidget::HandleStartClicked);
 
-	if (!LevelToOpen) {
+	if (!LevelToOpen.IsValid() && !LevelToOpen.ToSoftObjectPath().IsValid()) {
 #if WITH_EDITOR
 		if (FModuleManager::Get().IsModuleLoaded("MessageLog")) {
 			FMessageLog Log("PIE");
