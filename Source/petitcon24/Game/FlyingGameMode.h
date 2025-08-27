@@ -261,4 +261,12 @@ private:
 
     UPROPERTY()
     TObjectPtr<ALevelSequenceActor> DeathMovieSequenceActor;
+
+    // 死亡ムービー終了後に遷移するタイトルレベル
+    UPROPERTY(EditDefaultsOnly, Category = "Death")
+    TSoftObjectPtr<UWorld> TitleLevel;
+
+    // 死亡ムービー終了ハンドラ
+    UFUNCTION()
+    void HandleDeathMovieFinished();
 };
