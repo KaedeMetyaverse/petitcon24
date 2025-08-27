@@ -418,11 +418,128 @@ void AFlyingGameMode::OnPrecomputeStageUnloaded()
 
 void AFlyingGameMode::FinalizePrecomputeTotalPathLength()
 {
-    check(InGameInfoSubsystem != nullptr);
-    InGameInfoSubsystem->SetTotalPathLength(TotalPathLengthAccumulated);
+	check(InGameInfoSubsystem != nullptr);
+	InGameInfoSubsystem->SetTotalPathLength(TotalPathLengthAccumulated);
 
-    // プリコンピュート完了後にステージ進行フローを開始
-    StartSequence();
+	// プリコンピュート完了後に、オープニング前のプレリュード（任意）を実行
+	StartPreludeBeforeStartSequence();
+}
+
+void AFlyingGameMode::StartPreludeBeforeStartSequence()
+{
+	// レベルかシーケンスのどちらかが未設定なら、即 StartSequence
+	const bool bHasLevel = PreludeLevel.ToSoftObjectPath().IsValid();
+	const bool bHasSequence = PreludeSequence.ToSoftObjectPath().IsValid();
+	if (!bHasLevel || !bHasSequence)
+	{
+#if WITH_EDITOR
+		if (!bHasLevel || !bHasSequence)
+		{
+			if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+			{
+				FMessageLog Log("PIE");
+				if (!bHasLevel)
+				{
+					Log.Warning(LOCTEXT("PreludeLevelNotSet", "PreludeLevel is not set in GameMode. Skipping prelude."));
+				}
+				if (!bHasSequence)
+				{
+					Log.Warning(LOCTEXT("PreludeSequenceNotSet", "PreludeSequence is not set in GameMode. Skipping prelude."));
+				}
+			}
+		}
+#endif
+		UE_LOG(LogFlyingGameMode, Log, TEXT("Prelude is not fully configured. Starting main sequence."));
+		StartSequence();
+		return;
+	}
+
+	const FSoftObjectPath PreludePath = PreludeLevel.ToSoftObjectPath();
+	PreludeLongPackageName = PreludePath.GetLongPackageName();
+	if (!ensureAlways(!PreludeLongPackageName.IsEmpty()))
+	{
+		StartSequence();
+		return;
+	}
+
+	FLatentActionInfo Latent;
+	Latent.CallbackTarget = this;
+	Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnPreludeLevelLoaded);
+	Latent.UUID = 4001;
+	Latent.Linkage = 0;
+	UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, PreludeLevel, /*bMakeVisibleAfterLoad*/ true, /*bShouldBlockOnLoad*/ false, Latent);
+}
+
+void AFlyingGameMode::OnPreludeLevelLoaded()
+{
+	// ロード確認
+	ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*PreludeLongPackageName));
+	if (!Streaming || !Streaming->IsLevelLoaded())
+	{
+#if WITH_EDITOR
+		if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+		{
+			FMessageLog Log("PIE");
+			Log.Error(FText::Format(
+				LOCTEXT("PreludeStreamingNotLoadedFmt", "Prelude streaming level not loaded: {0}. Please add it to Window > Levels."),
+				FText::FromString(PreludeLongPackageName)));
+		}
+#endif
+		UE_LOG(LogFlyingGameMode, Error, TEXT("Prelude streaming level not loaded: %s"), *PreludeLongPackageName);
+		StartSequence();
+		return;
+	}
+
+	PreludeLoadedLevel = Streaming->GetLoadedLevel();
+	check(PreludeLoadedLevel != nullptr);
+
+	// ロード完了でプレリュードのシーケンスを再生
+	PlayPreludeSequence();
+}
+
+void AFlyingGameMode::PlayPreludeSequence()
+{
+	if (!CreateSequencePlayer(PreludeSequence, PreludeSequencePlayer, PreludeSequenceActor, LOCTEXT("PreludeSequenceNotSet2", "PreludeSequence is not set in GameMode.")))
+	{
+		StartSequence();
+		return;
+	}
+
+	PreludeSequencePlayer->OnFinished.AddDynamic(this, &AFlyingGameMode::HandlePreludeSequenceFinished);
+	PreludeSequencePlayer->Play();
+}
+
+void AFlyingGameMode::HandlePreludeSequenceFinished()
+{
+	if (PreludeSequencePlayer)
+	{
+		PreludeSequencePlayer->OnFinished.RemoveDynamic(this, &AFlyingGameMode::HandlePreludeSequenceFinished);
+	}
+
+	if (PreludeLongPackageName.IsEmpty())
+	{
+		StartSequence();
+		return;
+	}
+
+	FLatentActionInfo Latent;
+	Latent.CallbackTarget = this;
+	Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnPreludeLevelUnloaded);
+	Latent.UUID = 4002;
+	Latent.Linkage = 0;
+	UGameplayStatics::UnloadStreamLevel(this, FName(*PreludeLongPackageName), Latent, /*bShouldBlockOnUnload*/ false);
+}
+
+void AFlyingGameMode::OnPreludeLevelUnloaded()
+{
+	// 片付け
+	PreludeLoadedLevel = nullptr;
+	PreludeSequencePlayer = nullptr;
+	PreludeSequenceActor = nullptr;
+	PreludeLongPackageName.Reset();
+
+	// 本編開始
+	StartSequence();
 }
 
 void AFlyingGameMode::UpdateViewModelStageState()

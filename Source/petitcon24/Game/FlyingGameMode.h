@@ -227,6 +227,16 @@ private:
     void OnPrecomputeStageUnloaded();
     void FinalizePrecomputeTotalPathLength();
 
+    // オープニング前のプレリュード（ストリームレベル＋レベルシーケンス）
+    void StartPreludeBeforeStartSequence();
+    UFUNCTION()
+    void OnPreludeLevelLoaded();
+    void PlayPreludeSequence();
+    UFUNCTION()
+    void HandlePreludeSequenceFinished();
+    UFUNCTION()
+    void OnPreludeLevelUnloaded();
+
     // 一度だけ取得して保持するローカルプレイヤー用サブシステム
     UPROPERTY()
     TObjectPtr<UInGameInfoSubsystem> InGameInfoSubsystem;
@@ -273,4 +283,25 @@ private:
     // 死亡ムービー終了ハンドラ
     UFUNCTION()
     void HandleDeathMovieFinished();
+
+    // オープニング前のシーン設定（エディタから指定）
+    UPROPERTY(EditDefaultsOnly, Category = "OpeningPrelude")
+    TSoftObjectPtr<UWorld> PreludeLevel;
+
+    UPROPERTY(EditDefaultsOnly, Category = "OpeningPrelude")
+    TSoftObjectPtr<ULevelSequence> PreludeSequence;
+
+    // 再生用に保持（GC対策）
+    UPROPERTY()
+    TObjectPtr<ULevelSequencePlayer> PreludeSequencePlayer;
+
+    UPROPERTY()
+    TObjectPtr<ALevelSequenceActor> PreludeSequenceActor;
+
+    // プレリュードのロード確認用
+    UPROPERTY()
+    TObjectPtr<ULevel> PreludeLoadedLevel;
+
+    // 管理用（Unload に使用）
+    FString PreludeLongPackageName;
 };
