@@ -437,7 +437,12 @@ void AFlyingGameMode::HandlePlayerHealthChanged(const int32 NewHP)
         return;
     }
 
-    // HP0: 操作不能化
+    // 二重実行防止
+    if (bIsDying)
+    {
+        return;
+    }
+    bIsDying = true;
 
     UWorld* World = GetWorld();
     check(World != nullptr);
@@ -445,7 +450,57 @@ void AFlyingGameMode::HandlePlayerHealthChanged(const int32 NewHP)
     APlayerController* PC = World->GetFirstPlayerController();
     check(PC != nullptr);
 
+    // HP0: 操作不能化
     PC->UnPossess();
+
+    // カメラフェード（黒へ）
+    if (ensureAlways(PC->PlayerCameraManager))
+    {
+        PC->PlayerCameraManager->StartCameraFade(
+            /*From*/ 0.f,
+            /*To*/ 1.f,
+            FMath::Max(0.01f, DeathFadeOutSeconds),
+            FLinearColor::Black,
+            /*bShouldFadeAudio*/ false,
+            /*bHoldWhenFinished*/ true);
+    }
+
+    // フェード完了後に現在のストリーミングレベルをアンロード
+    World->GetTimerManager().SetTimer(
+        DeathFadeTimerHandle,
+        this,
+        &AFlyingGameMode::OnDeathFadeFinished,
+        FMath::Max(0.01f, DeathFadeOutSeconds),
+        /*bLoop*/ false);
+}
+
+void AFlyingGameMode::OnDeathFadeFinished()
+{
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    if (!ensureAlways(CurrentLoadedLevel))
+    {
+        return;
+    }
+
+    const FString LongPackageName = CurrentLoadedLevel->GetPackage() ? CurrentLoadedLevel->GetPackage()->GetName() : FString();
+    if (!ensureAlways(!LongPackageName.IsEmpty()))
+    {
+        return;
+    }
+
+    FLatentActionInfo Latent;
+    Latent.CallbackTarget = this;
+    Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnDeathStageUnloaded);
+    Latent.UUID = 3001;
+    Latent.Linkage = 0;
+    UGameplayStatics::UnloadStreamLevel(this, FName(*LongPackageName), Latent, /*bShouldBlockOnUnload*/ false);
+}
+
+void AFlyingGameMode::OnDeathStageUnloaded()
+{
+    // フェードアウト後のアンロード完了。必要ならここでメニュー遷移やリスタートを実装
 }
 
 void AFlyingGameMode::PlayEndingSequence()
