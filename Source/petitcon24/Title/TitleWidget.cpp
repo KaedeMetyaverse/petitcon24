@@ -9,7 +9,7 @@ void UTitleWidget::NativeOnInitialized()
 	check(StartButton);
 	StartButton->OnClicked.AddDynamic(this, &UTitleWidget::HandleStartClicked);
 
-	if (!LevelToOpen.IsValid() && !LevelToOpen.ToSoftObjectPath().IsValid()) {
+	if (!LevelToOpen.ToSoftObjectPath().IsValid()) {
 #if WITH_EDITOR
 		if (FModuleManager::Get().IsModuleLoaded("MessageLog")) {
 			FMessageLog Log("PIE");
@@ -26,7 +26,10 @@ void UTitleWidget::NativeOnInitialized()
 void UTitleWidget::HandleStartClicked()
 {
 	const FString LongPackageName = LevelToOpen.ToSoftObjectPath().GetLongPackageName();
-	check(!LongPackageName.IsEmpty());
+	if (!ensureAlways(!LongPackageName.IsEmpty()))
+	{
+		return;
+	}
 
 	const FName LevelName(*LongPackageName);
 	UGameplayStatics::OpenLevel(this, LevelName);
