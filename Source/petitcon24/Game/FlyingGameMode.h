@@ -177,6 +177,13 @@ private:
     UFUNCTION()
     void OnDeathStageUnloaded();
 
+    // 死亡時ムービー用：レベルロード完了
+    UFUNCTION()
+    void OnDeathMovieLevelLoaded();
+
+    // 死亡時ムービー用：シーケンス再生
+    void PlayDeathMovieSequence();
+
     // ゲーム中に表示する情報ウィジェット（エディタ設定可能）
     UPROPERTY(EditDefaultsOnly, Category = "InGameUI")
     TSubclassOf<UUserWidget> InGameInfoWidgetClass;
@@ -240,4 +247,18 @@ private:
 
     // バインド解除用
     FDelegateHandle PlayerHealthChangedHandle;
+
+    // 死亡時ムービー設定
+    UPROPERTY(EditDefaultsOnly, Category = "Death")
+    TSoftObjectPtr<UWorld> DeathMovieLevel;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Death")
+    TSoftObjectPtr<ULevelSequence> DeathMovieSequence;
+
+    // 再生用に保持（GC対策）
+    UPROPERTY()
+    TObjectPtr<ULevelSequencePlayer> DeathMovieSequencePlayer;
+
+    UPROPERTY()
+    TObjectPtr<ALevelSequenceActor> DeathMovieSequenceActor;
 };

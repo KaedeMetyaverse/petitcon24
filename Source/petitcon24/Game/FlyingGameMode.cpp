@@ -500,7 +500,94 @@ void AFlyingGameMode::OnDeathFadeFinished()
 
 void AFlyingGameMode::OnDeathStageUnloaded()
 {
-    // フェードアウト後のアンロード完了。必要ならここでメニュー遷移やリスタートを実装
+    // フェードアウト後のアンロード完了。指定レベルのロードを開始
+    UWorld* World = GetWorld();
+    check(World != nullptr);
+
+    // 指定がなければ何もしない（安全側）。ログは Warning
+    if ((!DeathMovieLevel.IsValid()) && (!DeathMovieLevel.ToSoftObjectPath().IsValid()))
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Warning(LOCTEXT("DeathMovieLevelNotSet", "DeathMovieLevel is not set in GameMode. Death movie will be skipped."));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Warning, TEXT("DeathMovieLevel is not set in GameMode. Death movie will be skipped."));
+        return;
+    }
+
+    // ロード完了時に OnDeathMovieLevelLoaded
+    FLatentActionInfo Latent;
+    Latent.CallbackTarget = this;
+    Latent.ExecutionFunction = GET_FUNCTION_NAME_CHECKED(AFlyingGameMode, OnDeathMovieLevelLoaded);
+    Latent.UUID = 3101;
+    Latent.Linkage = 0;
+    UGameplayStatics::LoadStreamLevelBySoftObjectPtr(this, DeathMovieLevel, /*bMakeVisibleAfterLoad*/ true, /*bShouldBlockOnLoad*/ false, Latent);
+}
+
+void AFlyingGameMode::OnDeathMovieLevelLoaded()
+{
+    // ロード確認
+    const FSoftObjectPath LevelPath = DeathMovieLevel.ToSoftObjectPath();
+    const FString LongPackageName = LevelPath.GetLongPackageName();
+    if (!ensureAlways(!LongPackageName.IsEmpty()))
+    {
+        return;
+    }
+
+    ULevelStreaming* Streaming = UGameplayStatics::GetStreamingLevel(this, FName(*LongPackageName));
+    if (!Streaming || !Streaming->IsLevelLoaded())
+    {
+#if WITH_EDITOR
+        if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
+        {
+            FMessageLog Log("PIE");
+            Log.Error(FText::Format(
+                LOCTEXT("DeathMovieStreamingNotLoadedFmt", "Death movie streaming level not loaded: {0}"),
+                FText::FromString(LongPackageName)));
+        }
+#endif
+        UE_LOG(LogFlyingGameMode, Error, TEXT("Death movie streaming level not loaded: %s"), *LongPackageName);
+        return;
+    }
+
+    CurrentLoadedLevel = Streaming->GetLoadedLevel();
+    check(CurrentLoadedLevel != nullptr);
+
+    // ロード完了でシーケンス再生
+    PlayDeathMovieSequence();
+}
+
+void AFlyingGameMode::PlayDeathMovieSequence()
+{
+    // シーケンス未設定なら終了
+    if (!CreateSequencePlayer(DeathMovieSequence, DeathMovieSequencePlayer, DeathMovieSequenceActor, LOCTEXT("DeathMovieSequenceNotSet", "DeathMovieSequence is not set in GameMode.")))
+    {
+        return;
+    }
+
+    // 黒フェード状態を解除してから再生に入る（フェードイン）
+    if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+    {
+        if (PC->PlayerCameraManager)
+        {
+            // 既に HoldWhenFinished=true で黒1.0 のはず。ここで白0.0へ戻す
+            PC->PlayerCameraManager->StartCameraFade(
+                /*From*/ 1.f,
+                /*To*/ 0.f,
+                /*Duration*/ 0.75f,
+                FLinearColor::Black,
+                /*bShouldFadeAudio*/ false,
+                /*bHoldWhenFinished*/ false);
+        }
+    }
+    // 再生直前にゲーム中HUDとHowToを非表示
+    HideHowToWidget();
+    HideInGameWidget();
+
+    DeathMovieSequencePlayer->Play();
 }
 
 void AFlyingGameMode::PlayEndingSequence()
@@ -632,6 +719,11 @@ void AFlyingGameMode::ProceedLoadCurrentStage()
 
 void AFlyingGameMode::OnStageLoaded()
 {
+    // 死亡中は以降のステージ遷移フローを停止
+    if (bIsDying)
+    {
+        return;
+    }
     const FString CurrLongPackageName = Stages[CurrentStageIndex].ToSoftObjectPath().GetLongPackageName();
     check(!CurrLongPackageName.IsEmpty());
 
@@ -672,6 +764,10 @@ void AFlyingGameMode::OnStageLoaded()
 
 void AFlyingGameMode::StartMovementForCurrentStage(ULevel* LoadedLevel)
 {
+    if (bIsDying)
+    {
+        return;
+    }
     check(LoadedLevel != nullptr);
 
     APathActor* PathActor = FindUniquePathActorInStreamingLevel(LoadedLevel);
@@ -691,6 +787,12 @@ void AFlyingGameMode::BeginLoadingOverlayBeforeTransition()
 {
     UWorld* World = GetWorld();
     check(World != nullptr);
+
+    // 死亡中はロードオーバーレイ演出を開始しない
+    if (bIsDying)
+    {
+        return;
+    }
 
     bMinDurationSatisfied = false;
     bNextStageReady = false;
@@ -784,6 +886,10 @@ void AFlyingGameMode::TickFade()
 
 void AFlyingGameMode::OnFadeInFinished()
 {
+    if (bIsDying)
+    {
+        return;
+    }
     // フェードイン完了。必要ならここでアンロードを開始
     if (bPendingUnloadAfterFadeIn)
     {
@@ -794,6 +900,10 @@ void AFlyingGameMode::OnFadeInFinished()
 
 void AFlyingGameMode::OnFadeOutFinished()
 {
+    if (bIsDying)
+    {
+        return;
+    }
     check(LoadingOverlayWidget != nullptr);
 
     LoadingOverlayWidget->StopLoadingVideo();
@@ -824,6 +934,10 @@ void AFlyingGameMode::OnMinDurationReached()
 
 void AFlyingGameMode::TryFinishTransitionAfterLoadAndMin()
 {
+    if (bIsDying)
+    {
+        return;
+    }
     // 次のステージのロード完了 かつ 最低表示時間達成 を満たしていればフェードアウト
     if (bNextStageReady && bMinDurationSatisfied)
     {
