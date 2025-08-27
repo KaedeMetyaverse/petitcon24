@@ -19,6 +19,7 @@
 #include "LoadingOverlayBase.h"
 #include "Blueprint/UserWidget.h"
 #include "LevelSequencePlayer.h"
+#include "petitcon24GameSubsystem.h"
 #if WITH_EDITOR
 #include "Logging/MessageLog.h"
 #endif
@@ -175,8 +176,29 @@ void AFlyingGameMode::HideHowToWidget()
 
 void AFlyingGameMode::PlayOpeningSequence()
 {
-    // 未設定なら即移動開始
-    if (!CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode.")))
+    // GameInstanceSubsystem の死亡フラグに応じて ShortOpening を優先（未設定時は Opening へフォールバック）
+    UPetitcon24GameSubsystem* GameSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPetitcon24GameSubsystem>() : nullptr;
+    check(GameSubsystem != nullptr);
+
+    const bool bUseShort = GameSubsystem->GetHasDiedOnce();
+
+    bool bCreated = false;
+    if (bUseShort)
+    {
+        // まず短縮版を試す（未設定ならログ出力しつつ通常版へフォールバック）
+        bCreated = CreateSequencePlayer(ShortOpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("ShortOpeningSequenceNotSet", "ShortOpeningSequence is not set in GameMode."));
+        if (!bCreated)
+        {
+            bCreated = CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode."));
+        }
+    }
+    else
+    {
+        bCreated = CreateSequencePlayer(OpeningSequence, OpeningSequencePlayer, OpeningSequenceActor, LOCTEXT("OpeningSequenceNotSet", "OpeningSequence is not set in GameMode."));
+    }
+
+    // どちらも未設定なら即移動開始
+    if (!bCreated)
     {
         // Opening が無い場合でもゲーム中 HUD を表示
         ShowInGameWidget();
@@ -443,6 +465,13 @@ void AFlyingGameMode::HandlePlayerHealthChanged(const int32 NewHP)
         return;
     }
     bIsDying = true;
+
+    // 一度でも死亡したことを GameInstanceSubsystem に記録
+    {
+        UPetitcon24GameSubsystem* GameSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UPetitcon24GameSubsystem>() : nullptr;
+        check(GameSubsystem != nullptr);
+        GameSubsystem->SetHasDiedOnce(true);
+    }
 
     UWorld* World = GetWorld();
     check(World != nullptr);

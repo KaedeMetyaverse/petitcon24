@@ -104,6 +104,10 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "Game")
     TSoftObjectPtr<ULevelSequence> OpeningSequence;
 
+    // 二回目以降に再生する短縮オープニング
+    UPROPERTY(EditDefaultsOnly, Category = "Game")
+    TSoftObjectPtr<ULevelSequence> ShortOpeningSequence;
+
     // Opening 後に Possess する対象のタグ
     UPROPERTY(EditDefaultsOnly, Category = "Game")
     FName FlyingPawnTag;
