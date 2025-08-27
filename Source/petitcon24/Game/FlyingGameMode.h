@@ -147,6 +147,7 @@ private:
     bool bMinDurationSatisfied = false;
     bool bNextStageReady = false;
     bool bPendingUnloadAfterFadeIn = false;
+    bool bIsDying = false;
 
     float FadeElapsedSeconds = 0.f;
     float FadeTotalDuration = 0.f;
@@ -155,6 +156,7 @@ private:
 
     FTimerHandle FadeTimerHandle;
     FTimerHandle MinDurationTimerHandle;
+    FTimerHandle DeathFadeTimerHandle;
 
     void BeginLoadingOverlayBeforeTransition();
     void StartFade(float FromOpacity, float ToOpacity, float Duration, bool bIsFadeIn);
@@ -163,6 +165,17 @@ private:
     void OnFadeOutFinished();
     void OnMinDurationReached();
     void TryFinishTransitionAfterLoadAndMin();
+
+    // 死亡時フェード設定
+    UPROPERTY(EditDefaultsOnly, Category = "Death")
+    float DeathFadeOutSeconds = 1.5f;
+
+    // 死亡時フェード完了 → レベルアンロード
+    void OnDeathFadeFinished();
+
+    // レベルアンロード（死亡時）完了
+    UFUNCTION()
+    void OnDeathStageUnloaded();
 
     // ゲーム中に表示する情報ウィジェット（エディタ設定可能）
     UPROPERTY(EditDefaultsOnly, Category = "InGameUI")
