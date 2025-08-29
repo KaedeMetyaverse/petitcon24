@@ -42,6 +42,9 @@ public:
     // C++専用: スプライン進行距離更新デリゲートへのアクセサ
     FSplineProgressUpdatedDelegate& OnSplineProgressUpdated();
 
+    // エンディング再生前の準備（所持 Pawn の SkeletalMesh 相対位置をリセット）
+    void PrepareForEndingSequence();
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input", meta=(AllowPrivateAccess="true"))
     TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;

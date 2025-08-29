@@ -28,6 +28,9 @@ public:
     // Pawn と補助コリジョンアクタの両方へ Location を適用
     void SetLocationWithCollision(const FVector& NewLocation, bool bSweep = false);
 
+    // SkeletalMesh の相対位置を初期値に戻す
+    void ResetSkeletalMeshRelativeLocation();
+
     // HP変更の受信フック（実装は任意）
     UFUNCTION(BlueprintImplementableEvent, Category="Health")
     void ReceiveHealthChanged(int32 NewHP);
@@ -79,4 +82,7 @@ private: // HP→外観: デリゲート購読
     void BindCollisionHit();
 
     FDelegateHandle HealthChangedHandle;
+
+    // SkeletalMesh の初期相対位置
+    FVector InitialSkeletalMeshRelativeLocation;
 };

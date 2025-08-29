@@ -55,6 +55,12 @@ void AFlyingPawn::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
 
+    // 初期相対位置を記録
+    if (ensureAlways(SkeletalMesh))
+    {
+        InitialSkeletalMeshRelativeLocation = SkeletalMesh->GetRelativeLocation();
+    }
+
     if (ensureAlways(CollisionComponent))
     {
         DisableCollision();
@@ -79,6 +85,14 @@ void AFlyingPawn::OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerStat
         {
             BindHealthChangedDelegate(NewPlayerState);
         }
+    }
+}
+
+void AFlyingPawn::ResetSkeletalMeshRelativeLocation()
+{
+    if (ensureAlways(SkeletalMesh))
+    {
+        SkeletalMesh->SetRelativeLocation(InitialSkeletalMeshRelativeLocation);
     }
 }
 

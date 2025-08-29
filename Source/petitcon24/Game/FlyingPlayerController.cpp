@@ -38,6 +38,15 @@ FSplineProgressUpdatedDelegate& AFlyingPlayerController::OnSplineProgressUpdated
     return SplineProgressUpdatedDelegate;
 }
 
+void AFlyingPlayerController::PrepareForEndingSequence()
+{
+    AFlyingPawn* FlyingPawn = Cast<AFlyingPawn>(GetPawn());
+    if (ensureAlways(FlyingPawn))
+    {
+        FlyingPawn->ResetSkeletalMeshRelativeLocation();
+    }
+}
+
 float AFlyingPlayerController::ComputeMovementStep(const float DeltaSeconds) const
 {
     return SplineMoveSpeed * DeltaSeconds;

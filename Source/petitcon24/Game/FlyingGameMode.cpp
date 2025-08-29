@@ -851,6 +851,11 @@ void AFlyingGameMode::TryStartNextPath()
         APlayerController* PC = World->GetFirstPlayerController();
         check(PC != nullptr);
 
+        // Ending 再生直前の準備（Pawn の SkeletalMesh 相対位置を初期値へ戻す）
+        if (AFlyingPlayerController* FlyingPC = Cast<AFlyingPlayerController>(PC))
+        {
+            FlyingPC->PrepareForEndingSequence();
+        }
         PC->UnPossess();
         // Ending 再生直前にゲーム中 HUD を非表示
         HideInGameWidget();
